@@ -16,6 +16,6 @@ Install the [uv](https://docs.astral.sh/uv/) package manager.
 uv run ocr.py <path_to_image.jpeg> <path_to_data.csv>
 ```
 
-Note: the defaults are tuned for iPhone screenshots; for other devices, you may need to adjust parameters. Run `uv run ocr.py --help` for more information.
+Note: the defaults are tuned for iPhone 15 screenshots; for other devices, you may need to adjust parameters. Run `uv run ocr.py --help` for more information.
 
 3. TODO
