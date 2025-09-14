@@ -1,5 +1,7 @@
 # Strands Solver
 
+A solver for Strands, the New York Times puzzle game.
+
 ## Installation
 
 Install the [uv](https://docs.astral.sh/uv/) package manager.
