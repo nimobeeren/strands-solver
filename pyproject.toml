@@ -7,12 +7,17 @@ requires-python = ">=3.13"
 dependencies = [
     "easyocr>=1.7.2",
     "matplotlib>=3.10.6",
+    "nltk>=3.9.1",
     "pillow>=11.3.0",
+    "pypruningradixtrie>=2.1.0",
     "pytesseract>=0.3.13",
     "torch>=2.8.0",
     "torchvision>=0.23.0",
     "transformers>=4.56.1",
 ]
+
+[project.scripts]
+strands-ocr = "ocr:cli_main"
 
 [dependency-groups]
 dev = [

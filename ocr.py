@@ -1,7 +1,11 @@
 """Wonky AI-generated code to extract the puzzle grid from a screenshot."""
 
+import argparse
+import csv
+import sys
 from collections import deque
 from pathlib import Path
+from typing import Sequence
 
 import pytesseract
 from PIL import Image, ImageEnhance, ImageOps
@@ -264,3 +268,194 @@ def extract_grid(
             row_letters.append(letter)
         grid.append(row_letters)
     return grid
+
+
+def load_image(image_path: str | Path) -> Image.Image:
+    """Load an image from disk and return a PIL Image in RGB mode.
+
+    Raises FileNotFoundError if the path does not exist.
+    """
+    path = Path(image_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Image not found: {path}")
+    img = Image.open(path)
+    # Normalize to RGB to avoid alpha-channel surprises during processing
+    return img.convert("RGB")
+
+
+def save_grid_to_csv(grid: Sequence[Sequence[str]], csv_path: str | Path) -> None:
+    """Save a 2D grid of letters to a CSV file with basic validation.
+
+    Validation rules:
+    - Grid must be non-empty and rectangular (all rows same length)
+    - Each cell must be a single uppercase A-Z letter or empty string
+    """
+    # Basic structure checks
+    if not grid or not grid[0]:
+        raise ValueError("Grid must be non-empty")
+    expected_cols = len(grid[0])
+    for r_idx, row in enumerate(grid):
+        if len(row) != expected_cols:
+            raise ValueError(
+                f"Grid is not rectangular: row 0 has {expected_cols} cols, row {r_idx} has {len(row)}"
+            )
+        for c_idx, cell in enumerate(row):
+            if not isinstance(cell, str):
+                raise ValueError(f"Grid cell at ({r_idx},{c_idx}) must be a string")
+            value = cell.strip().upper()
+            if value not in {""} | {chr(ord("A") + i) for i in range(26)}:
+                raise ValueError(
+                    f"Invalid cell at ({r_idx},{c_idx}): '{cell}'. Must be '', or A-Z."
+                )
+
+    out_path = Path(csv_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with out_path.open("w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        for row in grid:
+            writer.writerow([cell.strip().upper() for cell in row])
+
+
+def load_grid_from_csv(
+    csv_path: str | Path,
+    *,
+    expected_rows: int | None = None,
+    expected_cols: int | None = None,
+    allow_blank: bool = True,
+) -> list[list[str]]:
+    """Load a grid from CSV and return a 2D list of strings with validation.
+
+    - Validates rectangular shape
+    - Optionally validates row/column count
+    - Validates each cell is a single A-Z letter; blanks optionally allowed
+    """
+    path = Path(csv_path)
+    if not path.exists():
+        raise FileNotFoundError(f"CSV not found: {path}")
+
+    rows: list[list[str]] = []
+    with path.open("r", newline="", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        for raw_row in reader:
+            # Normalize each cell: strip and uppercase
+            normalized = [cell.strip().upper() for cell in raw_row]
+            rows.append(normalized)
+
+    if not rows:
+        raise ValueError("CSV is empty; expected at least one row")
+
+    # Rectangular validation
+    num_cols = len(rows[0])
+    for r_idx, row in enumerate(rows):
+        if len(row) != num_cols:
+            raise ValueError(
+                f"CSV is not rectangular: row 0 has {num_cols} cols, row {r_idx} has {len(row)}"
+            )
+
+    if expected_rows is not None and len(rows) != expected_rows:
+        raise ValueError(
+            f"Unexpected row count: got {len(rows)}, expected {expected_rows}"
+        )
+    if expected_cols is not None and num_cols != expected_cols:
+        raise ValueError(
+            f"Unexpected column count: got {num_cols}, expected {expected_cols}"
+        )
+
+    # Cell validation
+    valid_letters = {chr(ord("A") + i) for i in range(26)}
+    for r_idx, row in enumerate(rows):
+        for c_idx, cell in enumerate(row):
+            if cell == "":
+                if not allow_blank:
+                    raise ValueError(f"Blank cell not allowed at ({r_idx},{c_idx})")
+                continue
+            if cell not in valid_letters:
+                raise ValueError(
+                    f"Invalid cell at ({r_idx},{c_idx}): '{cell}'. Must be A-Z."
+                )
+
+    return rows
+
+
+def process_image_to_csv(
+    image_path: str | Path,
+    csv_path: str | Path,
+    *,
+    rows: int = 8,
+    cols: int = 6,
+    tile_size: int = 170,
+    origin_x: int = 70,
+    origin_y: int = 900,
+) -> None:
+    """High-level helper: load image, extract grid, save as CSV."""
+    image = load_image(image_path)
+    grid = extract_grid(
+        image,
+        rows=rows,
+        cols=cols,
+        tile_size=tile_size,
+        origin_x=origin_x,
+        origin_y=origin_y,
+    )
+    save_grid_to_csv(grid, csv_path)
+
+
+def _cli_parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Extract Strands grid from screenshot and save as CSV"
+    )
+    parser.add_argument("image", help="Path to screenshot image")
+    parser.add_argument("csv", help="Path to output CSV")
+    parser.add_argument(
+        "--rows", type=int, default=8, help="Number of grid rows (default: 8)"
+    )
+    parser.add_argument(
+        "--cols", type=int, default=6, help="Number of grid columns (default: 6)"
+    )
+    parser.add_argument(
+        "--tile-size", type=int, default=170, help="Tile size in pixels (default: 170)"
+    )
+    parser.add_argument(
+        "--origin-x",
+        type=int,
+        default=70,
+        help="Left origin of the grid in pixels (default: 70)",
+    )
+    parser.add_argument(
+        "--origin-y",
+        type=int,
+        default=900,
+        help="Top origin of the grid in pixels (default: 900)",
+    )
+    parser.add_argument(
+        "--print", action="store_true", help="Print the extracted grid to stdout"
+    )
+    return parser.parse_args(argv)
+
+
+def cli_main(argv: list[str] | None = None) -> int:
+    args = _cli_parse_args(list(argv) if argv is not None else sys.argv[1:])
+    try:
+        process_image_to_csv(
+            args.image,
+            args.csv,
+            rows=args.rows,
+            cols=args.cols,
+            tile_size=args.tile_size,
+            origin_x=args.origin_x,
+            origin_y=args.origin_y,
+        )
+        if args.print:
+            grid = load_grid_from_csv(
+                args.csv, expected_rows=args.rows, expected_cols=args.cols
+            )
+            for row in grid:
+                print(",".join(row))
+        return 0
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(cli_main())
