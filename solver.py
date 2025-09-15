@@ -1,4 +1,17 @@
+from enum import Enum
+
 from nltk.corpus import words
+
+
+class Direction(Enum):
+    RIGHT = (1, 0)
+    DOWN_RIGHT = (1, 1)
+    DOWN = (0, 1)
+    DOWN_LEFT = (-1, 1)
+    LEFT = (-1, 0)
+    UP_LEFT = (-1, -1)
+    UP = (0, -1)
+    UP_RIGHT = (1, -1)
 
 
 class Solver:
@@ -8,10 +21,11 @@ class Solver:
         self.cols = cols
         self.wordlist = [word.upper() for word in words.words()]
 
-    def find_words(self, *, x: int, y: int, prefix="", min_length=4) -> set[str]:
-        """Finds the words you can make when starting with the prefix and
-        continuing at position (x, y)."""
+    def find_words(self, *, pos: tuple[int, int], prefix="", min_length=4) -> set[str]:
+        """Finds the words you can make when starting with `prefix` and continuing at
+        position `pos`."""
         words: set[str] = set()
+        x, y = pos
         candidate = prefix + self.grid[x][y]
         if not self.is_word_prefix(candidate):
             return words
@@ -19,22 +33,15 @@ class Solver:
             print(f"Found word: {candidate}")
             words.add(candidate)
 
-        next_xy_options = [
-            [x + 1, y],  # right
-            [x + 1, y + 1],  # down-right
-            [x, y + 1],  # down
-            [x - 1, y + 1],  # down-left
-            [x - 1, y],  # left
-            [x - 1, y - 1],  # up-left
-            [x, y - 1],  # up
-            [x + 1, y - 1],  # up-right
-        ]
-
-        for [nx, ny] in next_xy_options:
+        for dir in Direction:
             # if coordinates are within bounds
+            dx, dy = dir.value
+            nx, ny = x + dx, y + dy
             if 0 <= nx < self.cols and 0 <= ny < self.rows:
                 words = words.union(
-                    self.find_words(x=nx, y=ny, prefix=candidate, min_length=min_length)
+                    self.find_words(
+                        pos=(nx, ny), prefix=candidate, min_length=min_length
+                    )
                 )
 
         return words

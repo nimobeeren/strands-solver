@@ -7,7 +7,7 @@ test_grid = load_grid_from_csv("./puzzles/2025-09-14.csv")
 
 def test_find_words_no_min_length():
     solver = Solver(test_grid)
-    words = solver.find_words(x=0, y=0, min_length=0)
+    words = solver.find_words(pos=(0, 0), min_length=0)
     # removed self-overlapping words here
     assert words == {
         "THEY",
@@ -29,7 +29,7 @@ def test_find_words_no_min_length():
 
 def test_find_words():
     solver = Solver(test_grid)
-    words = solver.find_words(x=0, y=0)
+    words = solver.find_words(pos=(0, 0))
     # removed self-overlapping words here
     assert words == {
         "THEY",
