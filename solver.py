@@ -8,16 +8,14 @@ class Solver:
         self.cols = cols
         self.wordlist = [word.upper() for word in words.words()]
 
-    def find_words(self, *, x: int, y: int, prefix="") -> set[str]:
+    def find_words(self, *, x: int, y: int, prefix="", min_length=4) -> set[str]:
         """Finds the words you can make when starting with the prefix and
         continuing at position (x, y)."""
         words: set[str] = set()
         candidate = prefix + self.grid[x][y]
-        # print(f"Candidate: {candidate}")
         if not self.is_word_prefix(candidate):
-            # print("Not a prefix")
             return words
-        if self.is_word(candidate):
+        if self.is_word(candidate) and len(candidate) >= min_length:
             print(f"Found word: {candidate}")
             words.add(candidate)
 
@@ -35,7 +33,9 @@ class Solver:
         for [nx, ny] in next_xy_options:
             # if coordinates are within bounds
             if 0 <= nx < self.cols and 0 <= ny < self.rows:
-                words = words.union(self.find_words(x=nx, y=ny, prefix=candidate))
+                words = words.union(
+                    self.find_words(x=nx, y=ny, prefix=candidate, min_length=min_length)
+                )
 
         return words
 
