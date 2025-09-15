@@ -15,18 +15,25 @@ class Direction(Enum):
 
 
 class Solver:
-    def __init__(self, grid: list[list[str]], rows=6, cols=8):
+    def __init__(self, grid: list[list[str]], *, rows=6, cols=8):
         self.grid = grid
         self.rows = rows
         self.cols = cols
         self.wordlist = [word.upper() for word in words.words()]
 
-    def find_words(self, *, pos: tuple[int, int], prefix="", min_length=4) -> set[str]:
-        """Finds the words you can make when starting with `prefix` and continuing at
-        position `pos`."""
+    def find_words(
+        self,
+        *,
+        current_pos: tuple[int, int],
+        prefix_pos: list[tuple[int, int]] = [],
+        prefix_str="",
+        min_length=4,
+    ) -> set[str]:
+        """Finds words in the grid starting with `prefix_str` and continuing at
+        `current_pos` without using any of the positions in `prefix_pos`."""
         words: set[str] = set()
-        x, y = pos
-        candidate = prefix + self.grid[x][y]
+        x, y = current_pos
+        candidate = prefix_str + self.grid[x][y]
         if not self.is_word_prefix(candidate):
             return words
         if self.is_word(candidate) and len(candidate) >= min_length:
@@ -34,15 +41,21 @@ class Solver:
             words.add(candidate)
 
         for dir in Direction:
-            # if coordinates are within bounds
             dx, dy = dir.value
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < self.cols and 0 <= ny < self.rows:
-                words = words.union(
-                    self.find_words(
-                        pos=(nx, ny), prefix=candidate, min_length=min_length
-                    )
-                )
+            next_x, next_y = (x + dx, y + dy)
+            # Check that next position is within bounds
+            if next_x < 0 or next_x >= self.cols or next_y < 0 or next_y >= self.rows:
+                continue
+            # Check that next position doesn't overlap
+            if (next_x, next_y) in prefix_pos:
+                continue
+            # Next position is valid, continue finding words
+            words |= self.find_words(
+                current_pos=(next_x, next_y),
+                prefix_pos=[*prefix_pos, (x, y)],
+                prefix_str=candidate,
+                min_length=min_length,
+            )
 
         return words
 

@@ -15,11 +15,11 @@ if __name__ == "__main__":
 
     solver = Solver(grid)
 
-    # Find all words in the grid, allowing (self-)overlap
+    # Find all words in the grid, allowing overlap between different words
     cols = len(grid)
     rows = len(grid[0])
     words = set()
     for x in range(cols):
         for y in range(rows):
-            words |= solver.find_words(x=x, y=y)
+            words |= solver.find_words(current_pos=(x, y))
     print(words)
