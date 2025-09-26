@@ -40,11 +40,12 @@ class Solver:
         self.wordlist = sorted(wordset)
 
     def find_all_words(self):
-        """Finds all words in the grid, allowing overlap between different words."""
-        words: set[str] = set()
+        """Finds all strands forming words in the grid, allowing overlap between
+        different strands."""
+        words: list[Strand] = []
         for x in range(self.cols):
             for y in range(self.rows):
-                words |= self.find_words(current_pos=(x, y))
+                words += self.find_words(current_pos=(x, y))
         return words
 
     def find_words(
@@ -53,10 +54,10 @@ class Solver:
         current_pos: tuple[int, int],
         prefix: Strand = Strand(positions=[], string=""),
         min_length=4,
-    ) -> set[str]:
-        """Finds words in the grid starting with the `prefix` strand and continuing at
-        `current_pos` without overlapping with the `prefix` strand."""
-        words: set[str] = set()
+    ) -> list[Strand]:
+        """Finds strands forming words in the grid starting with the `prefix` strand and
+        continuing at `current_pos` without overlapping with the `prefix` strand."""
+        words: list[Strand] = []
         x, y = current_pos
 
         # Create a candidate strand by taking the prefix strand and adding the letter at `current_pos` to it
@@ -70,7 +71,7 @@ class Solver:
 
         if len(candidate.string) >= min_length and self.is_word(candidate.string):
             print(f"Found word: {candidate.string}")
-            words.add(candidate.string)
+            words.append(candidate)
 
         for dir in Direction:
             dx, dy = dir.value
@@ -81,7 +82,7 @@ class Solver:
             if (next_x, next_y) in candidate.positions:
                 continue  # next position overlaps
 
-            words |= self.find_words(
+            words += self.find_words(
                 current_pos=(next_x, next_y),
                 prefix=candidate,
                 min_length=min_length,
