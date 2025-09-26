@@ -11,15 +11,10 @@ if __name__ == "__main__":
 
     grid = load_grid_from_csv(args.grid)
 
-    print(grid)
+    print("Solving puzzle:")
+    for row in grid:
+        print(" ".join(row))
 
     solver = Solver(grid)
-
-    # Find all words in the grid, allowing overlap between different words
-    cols = len(grid)
-    rows = len(grid[0])
-    words = set()
-    for x in range(cols):
-        for y in range(rows):
-            words |= solver.find_words(current_pos=(x, y))
+    words = solver.find_all_words()
     print(words)

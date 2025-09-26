@@ -30,6 +30,14 @@ class Solver:
         self.wordset = wordset
         self.wordlist = sorted(wordset)
 
+    def find_all_words(self):
+        """Finds all words in the grid, allowing overlap between different words."""
+        words: set[str] = set()
+        for x in range(self.cols):
+            for y in range(self.rows):
+                words |= self.find_words(current_pos=(x, y))
+        return words
+
     def find_words(
         self,
         *,
