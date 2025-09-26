@@ -1,4 +1,5 @@
 import bisect
+from dataclasses import dataclass
 from enum import Enum
 
 from words import get_wordset
@@ -13,6 +14,14 @@ class Direction(Enum):
     UP_LEFT = (-1, -1)
     UP = (0, -1)
     UP_RIGHT = (1, -1)
+
+
+@dataclass
+class Strand:
+    positions: list[tuple[int, int]]
+    """Sequence of positions that the strand occupies."""
+    string: str
+    """String formed by concatenating the letters in the grid at each position."""
 
 
 class Solver:
@@ -42,35 +51,39 @@ class Solver:
         self,
         *,
         current_pos: tuple[int, int],
-        prefix_pos: list[tuple[int, int]] = [],
-        prefix_str="",
+        prefix: Strand = Strand(positions=[], string=""),
         min_length=4,
     ) -> set[str]:
-        """Finds words in the grid starting with `prefix_str` and continuing at
-        `current_pos` without using any of the positions in `prefix_pos`."""
+        """Finds words in the grid starting with the `prefix` strand and continuing at
+        `current_pos` without overlapping with the `prefix` strand."""
         words: set[str] = set()
         x, y = current_pos
-        candidate = prefix_str + self.grid[x][y]
-        if not self.is_word_prefix(candidate):
+
+        # Create a candidate strand by taking the prefix strand and adding the letter at `current_pos` to it
+        candidate = Strand(
+            positions=prefix.positions + [(x, y)],
+            string=prefix.string + self.grid[x][y],
+        )
+
+        if not self.is_word_prefix(candidate.string):
             return words
-        if len(candidate) >= min_length and self.is_word(candidate):
-            print(f"Found word: {candidate}")
-            words.add(candidate)
+
+        if len(candidate.string) >= min_length and self.is_word(candidate.string):
+            print(f"Found word: {candidate.string}")
+            words.add(candidate.string)
 
         for dir in Direction:
             dx, dy = dir.value
             next_x, next_y = (x + dx, y + dy)
-            # Check that next position is within bounds
+
             if next_x < 0 or next_x >= self.cols or next_y < 0 or next_y >= self.rows:
-                continue
-            # Check that next position doesn't overlap
-            if (next_x, next_y) in prefix_pos:
-                continue
-            # Next position is valid, continue finding words
+                continue  # next position is out of bounds
+            if (next_x, next_y) in candidate.positions:
+                continue  # next position overlaps
+
             words |= self.find_words(
                 current_pos=(next_x, next_y),
-                prefix_pos=[*prefix_pos, (x, y)],
-                prefix_str=candidate,
+                prefix=candidate,
                 min_length=min_length,
             )
 
