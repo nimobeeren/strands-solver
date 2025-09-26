@@ -1,6 +1,7 @@
+import bisect
 from enum import Enum
 
-from nltk.corpus import words
+from words import get_wordset
 
 
 class Direction(Enum):
@@ -15,11 +16,19 @@ class Direction(Enum):
 
 
 class Solver:
-    def __init__(self, grid: list[list[str]], *, rows=6, cols=8):
+    def __init__(
+        self,
+        grid: list[list[str]],
+        *,
+        rows=6,
+        cols=8,
+        wordset: set[str] = get_wordset(),
+    ):
         self.grid = grid
         self.rows = rows
         self.cols = cols
-        self.wordlist = [word.upper() for word in words.words()]
+        self.wordset = wordset
+        self.wordlist = sorted(wordset)
 
     def find_words(
         self,
@@ -36,7 +45,7 @@ class Solver:
         candidate = prefix_str + self.grid[x][y]
         if not self.is_word_prefix(candidate):
             return words
-        if self.is_word(candidate) and len(candidate) >= min_length:
+        if len(candidate) >= min_length and self.is_word(candidate):
             print(f"Found word: {candidate}")
             words.add(candidate)
 
@@ -60,10 +69,9 @@ class Solver:
         return words
 
     def is_word(self, candidate: str):
-        return candidate in self.wordlist
+        return candidate in self.wordset
 
     def is_word_prefix(self, candidate: str):
-        for word in self.wordlist:
-            if word.startswith(candidate):
-                return True
-        return False
+        candidate = candidate.upper()
+        i = bisect.bisect_left(self.wordlist, candidate)
+        return i < len(self.wordlist) and self.wordlist[i].startswith(candidate)

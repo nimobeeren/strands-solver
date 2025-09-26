@@ -24,6 +24,11 @@ def test_find_words_no_min_length():
         "TEA",
         "THY",
         "TE",
+        "TEASLE",
+        "TSS",
+        "TSH",
+        "TESLA",
+        "TSA",
     }
 
 
@@ -39,4 +44,6 @@ def test_find_words():
         "TEAD",
         "TEADISH",
         "TEDA",
+        "TESLA",
+        "TEASLE",
     }
