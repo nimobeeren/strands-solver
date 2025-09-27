@@ -1,19 +1,15 @@
-from nltk.corpus import words, wordnet as wn
+from nltk.corpus import words as nltk_words, wordnet as wn
 
 
 def get_wordset():
+    words: set[str] = set()
+
     # Use WordNet lemmas which include inflected forms
-    wn_lemmas: set[str] = {
-        lemma.name().upper() for syn in wn.all_synsets() for lemma in syn.lemmas()
-    }
+    words |= set(wn.all_lemma_names())
+    # Add NTLK words for uncommon words
+    words |= set(nltk_words.words())
+    # Convert to uppercase
+    # And filter out words containing characters other than A-Z
+    words = {word.upper() for word in words if word.isalpha() and word.isascii()}
 
-    # Use NTLK words for uncommon words
-    nltk_words = set(w.upper() for w in words.words())
-
-    # Combine both wordsets
-    wordset = nltk_words | wn_lemmas
-
-    # Filter out words containing characters other than A-Z
-    wordset = {word for word in wordset if word.isalpha() and word.isascii()}
-
-    return wordset
+    return words
