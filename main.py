@@ -1,4 +1,5 @@
 import argparse
+from pprint import pprint
 
 from ocr import load_grid_from_csv
 from solver import Solver
@@ -16,5 +17,5 @@ if __name__ == "__main__":
         print(" ".join(row))
 
     solver = Solver(grid)
-    words = solver.find_all_words()
-    print(words)
+    solution = solver.solve()
+    pprint(solution)

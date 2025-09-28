@@ -23,25 +23,57 @@ class Strand:
     string: str
     """String formed by concatenating the letters in the grid at each position."""
 
+    def overlaps(self, other: "Strand"):
+        return len(set(self.positions) & set(other.positions)) > 0
+
 
 class Solver:
     def __init__(
         self,
         grid: list[list[str]],
         *,
-        rows=6,
-        cols=8,
         wordset: set[str] = get_wordset(),
     ):
         self.grid = grid
-        self.rows = rows
-        self.cols = cols
+        self.rows = len(grid)
+        self.cols = len(grid[0])
         self.wordset = wordset
         self.wordlist = sorted(wordset)
 
-    def find_all_words(self):
-        """Finds all strands forming words in the grid, allowing overlap between
-        different strands."""
+    def solve(
+        self, *, words: list[Strand] | None = None, used_words: list[Strand] = []
+    ) -> list[Strand] | None:
+        """Solve the puzzle by choosing from `words` and using at least the words in
+        `used_words`. If `words` is not provided, will find all words in the grid first."""
+        if self.is_valid_solution(used_words):
+            return used_words
+
+        if words is None:
+            words = self.find_all_words()
+            print(f"Found {len(words)} words")
+
+        for i, word in enumerate(words):
+            if any(uw.overlaps(word) for uw in used_words):
+                continue  # word overlaps with a used word
+            words_to_try = words[i + 1 :]  # don't try words we've already tried
+            solution = self.solve(words=words_to_try, used_words=used_words + [word])
+            if solution is not None:
+                return solution
+
+        return None
+
+    def is_valid_solution(self, strands: list[Strand]) -> bool:
+        """Checks that all positions in the grid are occupied by at least one strand.
+        Note: we don't check that the strands are valid and non-overlapping; this must
+        be maintained during construction."""
+        for x in range(self.cols):
+            for y in range(self.rows):
+                if not any((x, y) in s.positions for s in strands):
+                    return False
+        return True
+
+    def find_all_words(self) -> list[Strand]:
+        """Finds all strands forming words in the grid."""
         words: list[Strand] = []
         for x in range(self.cols):
             for y in range(self.rows):
@@ -63,7 +95,7 @@ class Solver:
         # Create a candidate strand by taking the prefix strand and adding the letter at `current_pos` to it
         candidate = Strand(
             positions=prefix.positions + [(x, y)],
-            string=prefix.string + self.grid[x][y],
+            string=prefix.string + self.grid[y][x],
         )
 
         if not self.is_word_prefix(candidate.string):
@@ -90,10 +122,10 @@ class Solver:
 
         return words
 
-    def is_word(self, candidate: str):
+    def is_word(self, candidate: str) -> bool:
         return candidate in self.wordset
 
-    def is_word_prefix(self, candidate: str):
+    def is_word_prefix(self, candidate: str) -> bool:
         candidate = candidate.upper()
         i = bisect.bisect_left(self.wordlist, candidate)
         return i < len(self.wordlist) and self.wordlist[i].startswith(candidate)

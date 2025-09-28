@@ -1,12 +1,20 @@
 from ocr import load_grid_from_csv
-from solver import Solver
+from solver import Solver, Strand
 
-
-test_grid = load_grid_from_csv("./puzzles/2025-09-14.csv")
-
+def test_solve():
+    grid = load_grid_from_csv("./puzzles/example.csv")
+    solver = Solver(grid)
+    solution = solver.solve()
+    assert solution == [
+        Strand(positions=[(0, 0), (1, 0), (2, 0), (3, 0)], string='WORD'),
+        Strand(positions=[(0, 1), (1, 1), (2, 1), (3, 1)], string='TEST'),
+        Strand(positions=[(0, 2), (1, 2), (2, 2), (3, 2)], string='COOL'),
+        Strand(positions=[(0, 3), (1, 3), (2, 3), (3, 3)], string='EASY')
+    ]
 
 def test_find_words_no_min_length():
-    solver = Solver(test_grid)
+    grid = load_grid_from_csv("./puzzles/2025-09-14.csv")
+    solver = Solver(grid)
     words = solver.find_words(current_pos=(0, 0), min_length=0)
     words_str = {w.string for w in words}
     assert words_str == {
@@ -34,7 +42,8 @@ def test_find_words_no_min_length():
 
 
 def test_find_words():
-    solver = Solver(test_grid)
+    grid = load_grid_from_csv("./puzzles/2025-09-14.csv")
+    solver = Solver(grid)
     words = solver.find_words(current_pos=(0, 0))
     words_str = {w.string for w in words}
     assert words_str == {
@@ -52,7 +61,8 @@ def test_find_words():
 
 
 def test_find_all_words():
-    solver = Solver(test_grid)
+    grid = load_grid_from_csv("./puzzles/2025-09-14.csv")
+    solver = Solver(grid)
     words = solver.find_all_words()
     words_str = {w.string for w in words}
     # fmt: off
