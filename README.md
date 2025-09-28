@@ -19,7 +19,7 @@ uv run -m nltk.downloader wordnet words
 2. Recognize the characters of the puzzle grid and save them to a CSV file:
 
 ```bash
-uv run ocr.py <path_to_image.jpeg> <path_to_data.csv>
+uv run ocr.py path_to_puzzle.jpeg path_to_puzzle.csv
 ```
 
 Note: the defaults are tuned for iPhone 15 screenshots; for other devices, you may need to adjust parameters. Run `uv run ocr.py --help` for more information.
@@ -27,5 +27,5 @@ Note: the defaults are tuned for iPhone 15 screenshots; for other devices, you m
 3. Run the solver:
 
 ```bash
-uv run main.py <path_to_data.csv>
+uv run main.py path_to_puzzle.csv
 ```
