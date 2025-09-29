@@ -1,8 +1,11 @@
 import bisect
+import logging
 from enum import Enum
 
 from common import Strand
 from dictionary import load_dictionary
+
+logger = logging.getLogger(__name__)
 
 
 class Direction(Enum):
@@ -26,12 +29,12 @@ class WordFinder:
         self.num_rows = len(grid)
         self.num_cols = len(grid[0])
 
-        print("Loading wordset")
+        logger.info("Loading wordset")
         if dictionary is None:
             dictionary = load_dictionary()
         self.dictionary = dictionary
         self.sorted_dictionary = sorted(dictionary)
-        print(f"Loaded {len(dictionary)} words")
+        logger.info(f"Loaded {len(dictionary)} words")
 
     def find_all_words(self) -> list[Strand]:
         """Finds all strands forming words in the grid."""
@@ -63,7 +66,7 @@ class WordFinder:
             return words
 
         if len(candidate.string) >= min_length and self.is_word(candidate.string):
-            print(f"Found word: {candidate.string}")
+            logger.debug(f"Found word: {candidate.string}")
             words.append(candidate)
 
         for dir in Direction:

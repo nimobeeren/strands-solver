@@ -1,4 +1,8 @@
+import logging
+
 from common import Strand
+
+logger = logging.getLogger(__name__)
 
 
 class GridCoverer:
@@ -12,9 +16,9 @@ class GridCoverer:
         self.num_cells = self.num_rows * self.num_cols
         self.strands = strands
 
-        print("Building indices")
+        logger.info("Building indices")
         self.strand_masks, self.cell_to_strand_idx = self._build_indices()
-        print("Built indices")
+        logger.info("Built indices")
 
     def cover(self) -> list[Strand] | None:
         """Finds a way to cover the entire grid with strands without overlapping."""

@@ -2,6 +2,7 @@
 
 import argparse
 import csv
+import logging
 import sys
 from collections import deque
 from pathlib import Path
@@ -10,6 +11,8 @@ from typing import Sequence
 import pytesseract
 from PIL import Image, ImageEnhance, ImageOps
 from pytesseract import Output
+
+logger = logging.getLogger(__name__)
 
 
 def _maybe_set_tesseract_path() -> None:
@@ -450,10 +453,10 @@ def cli_main(argv: list[str] | None = None) -> int:
                 args.csv, expected_rows=args.rows, expected_cols=args.cols
             )
             for row in grid:
-                print(",".join(row))
+                logger.info(",".join(row))
         return 0
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+        logger.error(f"Error: {e}")
         return 1
 
 

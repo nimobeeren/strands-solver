@@ -1,6 +1,10 @@
+import logging
+
 from common import Strand
 from grid_coverer import GridCoverer
 from word_finder import WordFinder
+
+logger = logging.getLogger(__name__)
 
 
 class Solver:
@@ -14,14 +18,14 @@ class Solver:
         Returns a list of strands covering the grid or None if unsatisfiable.
         """
 
-        print("Finding all words")
+        logger.info("Finding all words")
         finder = WordFinder(grid=self.grid)
         words = finder.find_all_words()
-        print(f"Found {len(words)} words")
+        logger.info(f"Found {len(words)} words")
 
-        print("Covering grid")
+        logger.info("Covering grid")
         coverer = GridCoverer(grid=self.grid, strands=words)
         solution = coverer.cover()
-        print("Covered grid")
+        logger.info("Covered grid")
 
         return solution

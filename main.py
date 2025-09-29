@@ -1,8 +1,15 @@
 import argparse
-from pprint import pprint
+import logging
+from pprint import pformat
 
 from ocr import load_grid_from_csv
 from solver import Solver
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 
 if __name__ == "__main__":
@@ -12,10 +19,10 @@ if __name__ == "__main__":
 
     grid = load_grid_from_csv(args.grid)
 
-    print("Solving puzzle:")
+    logger.info("Solving puzzle:")
     for row in grid:
-        print(" ".join(row))
+        logger.info(" ".join(row))
 
     solver = Solver(grid)
     solution = solver.solve()
-    pprint(solution)
+    logger.info(f"Solution:\n{pformat(solution)}")
