@@ -1,7 +1,6 @@
-from nltk.corpus import words as nltk_words, wordnet as wn
+def load_dictionary():
+    from nltk.corpus import words as nltk_words, wordnet as wn
 
-
-def get_wordset():
     words: set[str] = set()
 
     # Use WordNet lemmas which include inflected forms

@@ -2,7 +2,7 @@ import bisect
 from dataclasses import dataclass
 from enum import Enum
 
-from words import get_wordset
+from dictionary import load_dictionary
 
 
 class Direction(Enum):
@@ -32,13 +32,19 @@ class Solver:
         self,
         grid: list[list[str]],
         *,
-        wordset: set[str] = get_wordset(),
+        dictionary: set[str] | None = None,
     ):
         self.grid = grid
-        self.rows = len(grid)
-        self.cols = len(grid[0])
-        self.wordset = wordset
-        self.wordlist = sorted(wordset)
+        self.num_rows = len(grid)
+        self.num_cols = len(grid[0])
+        self.num_cells = self.num_rows * self.num_cols
+
+        print("Loading wordset")
+        if dictionary is None:
+            dictionary = load_dictionary()
+        self.dictionary = dictionary
+        self.sorted_dictionary = sorted(dictionary)
+        print(f"Loaded {len(dictionary)} words")
 
     def solve(self) -> list[Strand] | None:
         """Solve the puzzle by finding all words in the grid and then finding the words
@@ -52,16 +58,15 @@ class Solver:
 
         Returns a collection of `Strand`s covering the grid or None if unsatisfiable.
         """
+        print("Finding all words")
         words = self.find_all_words()
         print(f"Found {len(words)} words")
 
-        word_masks, cell_to_words, all_cells_mask = self._precompute_bitsets(words)
+        word_masks, cell_to_words = self.build_indices(words)
 
         # Core MRV backtracking using bitsets
-        solution_indices = self._solve_with_bitsets(
-            word_masks=word_masks,
-            cell_to_words=cell_to_words,
-            all_cells_mask=all_cells_mask,
+        solution_indices = self.cover(
+            word_masks=word_masks, cell_to_words=cell_to_words
         )
 
         if solution_indices is None:
@@ -73,8 +78,8 @@ class Solver:
     def find_all_words(self) -> list[Strand]:
         """Finds all strands forming words in the grid."""
         words: list[Strand] = []
-        for x in range(self.cols):
-            for y in range(self.rows):
+        for x in range(self.num_cols):
+            for y in range(self.num_rows):
                 words += self.find_words(current_pos=(x, y))
         return words
 
@@ -107,7 +112,12 @@ class Solver:
             dx, dy = dir.value
             next_x, next_y = (x + dx, y + dy)
 
-            if next_x < 0 or next_x >= self.cols or next_y < 0 or next_y >= self.rows:
+            if (
+                next_x < 0
+                or next_x >= self.num_cols
+                or next_y < 0
+                or next_y >= self.num_rows
+            ):
                 continue  # next position is out of bounds
             if (next_x, next_y) in candidate.positions:
                 continue  # next position overlaps
@@ -121,43 +131,38 @@ class Solver:
         return words
 
     def is_word(self, candidate: str) -> bool:
-        return candidate in self.wordset
+        return candidate in self.dictionary
 
     def is_word_prefix(self, candidate: str) -> bool:
         candidate = candidate.upper()
-        i = bisect.bisect_left(self.wordlist, candidate)
-        return i < len(self.wordlist) and self.wordlist[i].startswith(candidate)
+        i = bisect.bisect_left(self.sorted_dictionary, candidate)
+        return i < len(self.sorted_dictionary) and self.sorted_dictionary[i].startswith(
+            candidate
+        )
 
-    def _precompute_bitsets(
-        self, words: list[Strand]
-    ) -> tuple[list[int], list[list[int]], int]:
-        """Precompute:
+    def build_indices(self, words: list[Strand]):
+        """Computes:
         - `word_masks`: bit mask per word (1 bit per grid cell it covers)
         - `cell_to_words`: for each cell index, list of word indices that cover it
-        - `all_cells_mask`: mask with all N bits set
         """
-        num_cells = self.rows * self.cols
-        all_cells_mask = (1 << num_cells) - 1
-
         word_masks: list[int] = []
-        cell_to_words: list[list[int]] = [[] for _ in range(num_cells)]
+        cell_to_words: list[list[int]] = [[] for _ in range(self.num_cells)]
 
         for i, strand in enumerate(words):
             mask = 0
             for x, y in strand.positions:
-                bit_index = y * self.cols + x
+                bit_index = y * self.num_cols + x
                 mask |= 1 << bit_index
                 cell_to_words[bit_index].append(i)
             word_masks.append(mask)
 
-        return word_masks, cell_to_words, all_cells_mask
+        return word_masks, cell_to_words
 
-    def _solve_with_bitsets(
+    def cover(
         self,
         *,
         word_masks: list[int],
         cell_to_words: list[list[int]],
-        all_cells_mask: int,
         covered_mask: int = 0,
     ) -> list[int] | None:
         """Backtracking search that covers all cells exactly once using MRV branching.
@@ -165,10 +170,11 @@ class Solver:
         Returns a list of word indices forming a cover, or None if no cover exists.
         """
         # If fully covered, we are done
+        all_cells_mask = (1 << self.num_cells) - 1
         if covered_mask == all_cells_mask:
             return []
 
-        num_cells = self.rows * self.cols
+        num_cells = self.num_rows * self.num_cols
 
         # MRV: choose the uncovered cell with the fewest available non-overlapping words
         best_candidates: list[int] | None = None
@@ -196,10 +202,9 @@ class Solver:
         # Try candidates for the most constrained cell
         for w_idx in best_candidates:
             new_mask = covered_mask | word_masks[w_idx]
-            result = self._solve_with_bitsets(
+            result = self.cover(
                 word_masks=word_masks,
                 cell_to_words=cell_to_words,
-                all_cells_mask=all_cells_mask,
                 covered_mask=new_mask,
             )
             if result is not None:
