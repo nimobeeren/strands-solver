@@ -17,6 +17,8 @@ class Direction(Enum):
 
 
 class WordFinder:
+    """Given a grid and an optional dictionary, finds strands forming words."""
+
     def __init__(
         self, grid: list[list[str]], *, dictionary: set[str] | None = None
     ) -> None:
