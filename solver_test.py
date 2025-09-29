@@ -1,10 +1,14 @@
-from ocr import load_grid_from_csv
 from solver import Solver
 from common import Strand
 
 
 def test_solve():
-    grid = load_grid_from_csv("./puzzles/example.csv")
+    grid = [
+        ["W", "O", "R", "D"],
+        ["T", "E", "S", "T"],
+        ["C", "O", "O", "L"],
+        ["E", "A", "S", "Y"],
+    ]
     solver = Solver(grid)
     solution = solver.solve()
     # Note: this is just one solution, there may be other valid solutions

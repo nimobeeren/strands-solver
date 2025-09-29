@@ -1,16 +1,9 @@
 from common import Strand
 from grid_coverer import GridCoverer
-from ocr import load_grid_from_csv
 
 
 def test_cover():
     """Test that GridCoverer finds the unique solution when given a constrained set of words.
-
-    Grid:
-    W O R D
-    T E S T
-    C O O L
-    E A S Y
 
     We provide 5 words:
     - WORD (row 0)
@@ -22,7 +15,12 @@ def test_cover():
     Only the first 4 words can cover the entire grid (one solution).
     WORST conflicts with all of them, so it cannot be part of the solution.
     """
-    grid = load_grid_from_csv("./puzzles/example.csv")
+    grid = [
+        ["W", "O", "R", "D"],
+        ["T", "E", "S", "T"],
+        ["C", "O", "O", "L"],
+        ["E", "A", "S", "Y"],
+    ]
 
     # Create strands for each word
     # WORD: horizontal across row 0

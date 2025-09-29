@@ -1,9 +1,13 @@
-from ocr import load_grid_from_csv
 from word_finder import WordFinder
 
 
 def test_find_words():
-    grid = load_grid_from_csv("./puzzles/example.csv")
+    grid = [
+        ["W", "O", "R", "D"],
+        ["T", "E", "S", "T"],
+        ["C", "O", "O", "L"],
+        ["E", "A", "S", "Y"],
+    ]
     finder = WordFinder(grid)
     words = finder.find_words(current_pos=(0, 0))
     words_str = {w.string for w in words}
@@ -22,7 +26,12 @@ def test_find_words():
 
 
 def test_find_words_no_min_length():
-    grid = load_grid_from_csv("./puzzles/example.csv")
+    grid = [
+        ["W", "O", "R", "D"],
+        ["T", "E", "S", "T"],
+        ["C", "O", "O", "L"],
+        ["E", "A", "S", "Y"],
+    ]
     finder = WordFinder(grid)
     words = finder.find_words(current_pos=(0, 0), min_length=0)
     words_str = {w.string for w in words}
@@ -52,7 +61,12 @@ def test_find_words_no_min_length():
 
 
 def test_find_all_words():
-    grid = load_grid_from_csv("./puzzles/example.csv")
+    grid = [
+        ["W", "O", "R", "D"],
+        ["T", "E", "S", "T"],
+        ["C", "O", "O", "L"],
+        ["E", "A", "S", "Y"],
+    ]
     finder = WordFinder(grid)
     words = finder.find_all_words()
     words_str = {w.string for w in words}
