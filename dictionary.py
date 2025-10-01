@@ -1,14 +1,37 @@
+import logging
+from pathlib import Path
+
+import httpx
+
+
 def load_dictionary():
-    from nltk.corpus import words as nltk_words, wordnet as wn
+    """Loads the ENABLE1 dictionary from the internet."""
 
-    words: set[str] = set()
+    # Define the data directory and file path
+    data_dir = Path(__file__).parent / "data"
+    dict_file = data_dir / "enable1_words.txt"
 
-    # Use WordNet lemmas which include inflected forms
-    words |= set(wn.all_lemma_names())
-    # Add NTLK words for uncommon words
-    words |= set(nltk_words.words())
-    # Convert to uppercase
-    # And filter out words containing characters other than A-Z
-    words = {word.upper() for word in words if word.isalpha() and word.isascii()}
+    # Create data directory if it doesn't exist
+    data_dir.mkdir(exist_ok=True)
+
+    # Download the dictionary file if it doesn't exist
+    if not dict_file.exists():
+        url = "https://raw.githubusercontent.com/rressler/data_raw_courses/main/enable1_words.txt"
+        logging.info(f"Downloading dictionary from {url}...")
+        response = httpx.get(url)
+        response.raise_for_status()
+        dict_file.write_text(response.text)
+        logging.info(f"Dictionary saved to {dict_file}")
+
+    # Read and process the words
+    with open(dict_file, "r") as f:
+        words = f.readlines()
+
+    # Strip whitespace, convert to uppercase, and filter to only A-Z characters
+    words = {
+        word.strip().upper()
+        for word in words
+        if word.strip().isalpha() and word.strip().isascii()
+    }
 
     return words

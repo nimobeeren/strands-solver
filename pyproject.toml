@@ -1,20 +1,15 @@
 [project]
 name = "strands-solver"
 version = "0.1.0"
-description = "Add your description here"
+description = "A solver for Strands, the New York Times puzzle game."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "easyocr>=1.7.2",
+    "httpx>=0.28.1",
     "matplotlib>=3.10.6",
-    "nltk>=3.9.1",
     "pillow>=11.3.0",
-    "pypruningradixtrie>=2.1.0",
     "pytesseract>=0.3.13",
     "tiktoken>=0.11.0",
-    "torch>=2.8.0",
-    "torchvision>=0.23.0",
-    "transformers>=4.56.1",
 ]
 
 [project.scripts]
