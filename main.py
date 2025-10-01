@@ -1,5 +1,7 @@
 import argparse
 import logging
+import shutil
+from pathlib import Path
 from pprint import pformat
 
 from ocr import load_grid_from_csv
@@ -24,5 +26,23 @@ if __name__ == "__main__":
         logger.info(" ".join(row))
 
     solver = Solver(grid)
-    solution = solver.solve()
-    logger.info(f"Solution:\n{pformat(solution)}")
+    solutions = solver.solve()
+
+    logging.info(f"Found {len(solutions)} solution(s)")
+
+    if solutions:
+        logging.info(f"First solution:\n{pformat(solutions[0])}")
+
+        # Write each solution to its own file in out/ directory
+        output_dir = Path("out")
+        shutil.rmtree(output_dir)
+        output_dir.mkdir()
+
+        puzzle_name = Path(args.grid).stem
+
+        for i, solution in enumerate(solutions):
+            output_path = output_dir / f"{puzzle_name}.solution.{i}.txt"
+            with open(output_path, "w") as f:
+                f.write(pformat(solution))
+
+        logging.info(f"Solutions written to '{output_dir}' directory")

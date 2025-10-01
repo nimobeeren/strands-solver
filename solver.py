@@ -11,11 +11,12 @@ class Solver:
     def __init__(self, grid: list[list[str]]):
         self.grid = grid
 
-    def solve(self) -> list[Strand] | None:
-        """Solve the puzzle by finding all words in the grid and then finding the words
-        which exactly cover the grid.
+    def solve(self) -> list[list[Strand]]:
+        """Solve the puzzle by finding all words in the grid and then finding all ways
+        to exactly cover the grid with those words.
 
-        Returns a list of strands covering the grid or None if unsatisfiable.
+        Returns a list of solutions, where each solution is a list of strands covering
+        the grid.
         """
 
         logger.info("Finding all words")
@@ -25,7 +26,7 @@ class Solver:
 
         logger.info("Covering grid")
         coverer = GridCoverer(grid=self.grid, strands=words)
-        solution = coverer.cover()
+        solutions = coverer.cover()
         logger.info("Covered grid")
 
-        return solution
+        return solutions

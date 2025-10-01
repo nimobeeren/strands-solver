@@ -20,21 +20,19 @@ class GridCoverer:
         self.strand_masks, self.cell_to_strand_idx = self._build_indices()
         logger.info("Built indices")
 
-    def cover(self) -> list[Strand] | None:
-        """Finds a way to cover the entire grid with strands without overlapping."""
-        result = self._cover_rec()
-
-        if result is None:
-            return None
+    def cover(self) -> list[list[Strand]]:
+        """Finds ways to cover the entire grid with strands without overlapping."""
+        results = self._cover_rec()
 
         # Map indices back to Strands
-        return [self.strands[i] for i in result]
+        return [[self.strands[i] for i in result] for result in results]
 
-    def _cover_rec(self, *, covered_mask: int = 0) -> list[int] | None:
+    def _cover_rec(self, *, covered_mask: int = 0) -> list[list[int]]:
         """Recursive backtracking search that covers all grid cells exactly once using
         MRV (Minimum Remaining Values) branching.
 
-        Returns a list of strand indices forming a cover, or None if no cover exists.
+        Returns a list of sub-solutions, where each sub-solution is a list of strand
+        indices which, together with covered_mask, cover the entire grid.
 
         This implementation uses a bitset-based exact-cover style search with MRV:
 
@@ -43,10 +41,11 @@ class GridCoverer:
         - At each step, choose the uncovered cell with the fewest available candidates (MRV)
         - Branch only on strands that cover that cell and do not overlap already covered cells
         """
-        # If fully covered, we are done
+        # If fully covered, we found a solution
         all_cells_mask = (1 << self.num_cells) - 1
         if covered_mask == all_cells_mask:
-            return []
+            # There is exactly one sub-solution and it contains no strands
+            return [[]]
 
         num_cells = self.num_rows * self.num_cols
 
@@ -56,7 +55,7 @@ class GridCoverer:
 
         for cell_index in range(num_cells):
             if (covered_mask >> cell_index) & 1:
-                continue  # already covered
+                continue  # cell is already covered
 
             candidates = [
                 w_idx
@@ -65,7 +64,7 @@ class GridCoverer:
             ]
 
             if not candidates:
-                return None  # dead end: uncovered cell has no valid strands
+                return []  # dead end: uncovered cell has no valid strands
 
             if best_candidates is None or len(candidates) < len(best_candidates):
                 best_candidates = candidates
@@ -75,15 +74,15 @@ class GridCoverer:
         assert best_candidates is not None
 
         # Try candidates for the most constrained cell
+        solutions = []
         for w_idx in best_candidates:
             new_mask = covered_mask | self.strand_masks[w_idx]
-            result = self._cover_rec(
-                covered_mask=new_mask,
-            )
-            if result is not None:
-                return [w_idx] + result
+            sub_solutions = self._cover_rec(covered_mask=new_mask)
+            # Prepend w_idx to each sub-solution
+            for sub in sub_solutions:
+                solutions.append([w_idx] + sub)
 
-        return None
+        return solutions
 
     def _build_indices(self):
         """Computes:

@@ -2,7 +2,7 @@ from common import Strand
 from grid_coverer import GridCoverer
 
 
-def test_cover():
+def test_cover_single_solution():
     grid = [
         ["W", "O", "R", "D"],
         ["T", "E", "S", "T"],
@@ -26,8 +26,8 @@ def test_cover():
     # Provide all 5 words to the coverer
     strands = [word, test, cool, easy, worst]
     coverer = GridCoverer(grid=grid, strands=strands)
-    solution = coverer.cover()
+    solutions = coverer.cover()
 
-    # Check that the solution matches exactly
+    # There should be only one solution
     expected = [word, test, cool, easy]
-    assert solution == expected
+    assert solutions == [expected]
