@@ -12,16 +12,18 @@ def test_find_words():
     words = finder.find_words(current_pos=(0, 0))
     words_str = {w.string for w in words}
     assert words_str == {
+        "WOST",
         "WORD",
-        "WORDS",
+        "WEST",
+        "WORE",
+        "WOES",
         "WORT",
+        "WORDS",
+        "WORTS",
+        "WERT",
+        "WORSET",
         "WORST",
         "WORSE",
-        "WORSET",
-        "WORE",
-        "WOTE",
-        "WEST",
-        "WERT",
     }
 
 
@@ -36,27 +38,24 @@ def test_find_words_no_min_length():
     words = finder.find_words(current_pos=(0, 0), min_length=0)
     words_str = {w.string for w in words}
     assert words_str == {
-        "W",
-        "WO",
-        "WORD",
         "WORDS",
-        "WORT",
+        "WE",
         "WORST",
         "WORSE",
-        "WORSET",
         "WORE",
-        "WOE",
+        "WORTS",
         "WOT",
-        "WOTE",
-        "WE",
-        "WES",
-        "WEST",
         "WET",
-        "WER",
         "WERT",
-        "WTO",
-        "WTC",
-        "WTO",
+        "WOE",
+        "WOES",
+        "WOS",
+        "WORT",
+        "WEST",
+        "WORSET",
+        "WOST",
+        "WO",
+        "WORD",
     }
 
 
@@ -71,5 +70,5 @@ def test_find_all_words():
     words = finder.find_all_words()
     words_str = {w.string for w in words}
     # fmt: off
-    assert words_str == {"WORD", "WORDS", "WORT", "WORST", "WORSE", "WORSET", "WORE", "WOTE", "WEST", "WERT", "TEST", "TECO", "TECA", "TOOL", "TOOT", "TOSY", "TOEA", "TOST", "TORT", "TORSO", "TORSO", "TORSE", "TORE", "TOST", "TOWER", "COOL", "COOLY", "COOS", "COOSA", "COOER", "COOS", "COOST", "COOSER", "COOT", "COSY", "COTE", "COTO", "COST", "COSTLY", "COSET", "CEST", "CERT", "CERO", "EASY", "ORTOL", "OREO", "OREO", "OSLO", "OTOE", "OTOE", "OWER", "ERST", "EROS", "OSLO", "OCTOSE", "OTOE", "OSLO", "ACTOR", "ACER", "AOTES", "REST", "RESLOT", "RESOW", "RECOOL", "RECT", "RECTO", "RECTO", "RETOOL", "ROSE", "ROSET", "ROTE", "ROTO", "ROTC", "ROWET", "STOA", "STOOT", "STRE", "STRET", "STREW", "STROW", "SLOO", "SLOE", "SLOT", "SOSO", "SOOT", "SOOTER", "SOOL", "SOOT", "SOSO", "SOCE", "SOCE", "SOTER", "SECOS", "SECT", "SECTOR", "SERT", "SERO", "SEROW", "SORT", "SORTLY", "SORE", "SOTER", "SOWETO", "SOWER", "SOWT", "SOWTE", "SACO", "SOOL", "SOOT", "SOCE", "SOCE", "SOTER", "SOSO", "SOSO", "SOOT", "SOOTER", "SOSO", "SOSO", "SOTS", "SLOO", "SLOE", "SLOT", "DREST", "DREW", "DROW", "TOSY", "TOOT", "TOOTER", "TOETOE", "TRET", "TROT", "TROW", "LOOS", "LOOT", "LOOTER", "LOOS", "LOOSE", "LOOSER", "LOST", "LOSE", "LOSER", "LOTS"}
+    assert words_str == {'CESTOS', 'WORSET', 'TOOTERS', 'ERST', 'ROTES', 'SORE', 'SOWER', 'CEROS', 'TOST', 'STOA', 'SOOTS', 'SLOT', 'ACTOR', 'COOTS', 'WORDS', 'LOOTER', 'EROS', 'TORSO', 'LOOSER', 'WORE', 'SLOE', 'TORSE', 'COSY', 'RECTOS', 'LOSER', 'DREST', 'COOER', 'TOOL', 'TROT', 'COOLS', 'WORST', 'COOT', 'TORES', 'SORT', 'LOOT', 'STOAE', 'STREW', 'TOOLS', 'COST', 'STOAS', 'RECTO', 'DREW', 'STROW', 'TOOT', 'ROTE', 'OOTS', 'LOTS', 'OWES', 'REST', 'TORS', 'WERT', 'TROW', 'SOOT', 'ACES', 'TOOTS', 'TOEA', 'LOOTERS', 'ORTS', 'TRET', 'TORSOS', 'WORT', 'COOLY', 'TOWERS', 'WORTS', 'ORES', 'ROTO', 'TOWER', 'CERO', 'EASY', 'SECTOR', 'TORTS', 'COOS', 'LOST', 'COSET', 'ROES', 'WOST', 'LOOSE', 'SLOTS', 'TWOS', 'WEST', 'SOTS', 'COOERS', 'ROSE', 'SECT', 'TOES', 'TEST', 'RETOOLS', 'WORSE', 'TORT', 'TOOTER', 'LOOS', 'WORD', 'SORD', 'OCAS', 'SEROW', 'COSTLY', 'LOSE', 'RESOW', 'SOYS', 'ROSET', 'TOYS', 'RETOOL', 'ROTOS', 'COOL', 'SOLS', 'WOES', 'SLOES', 'COTES', 'COTE', 'ACTORS', 'TORE'}
     # fmt: on
