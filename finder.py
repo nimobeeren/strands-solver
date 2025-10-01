@@ -20,7 +20,7 @@ class Direction(Enum):
 
 
 class Finder:
-    """Given a grid and an optional dictionary, finds strands forming words."""
+    """Finds strands forming words given a grid and an optional dictionary."""
 
     def __init__(
         self, grid: list[list[str]], *, dictionary: set[str] | None = None
