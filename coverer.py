@@ -5,7 +5,7 @@ from common import Strand
 logger = logging.getLogger(__name__)
 
 
-class GridCoverer:
+class Coverer:
     """Given a grid and a list of strands, tries to find a way to cover every cell of
     the grid with a subset of the strands without overlapping."""
 

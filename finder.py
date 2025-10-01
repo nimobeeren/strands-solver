@@ -19,7 +19,7 @@ class Direction(Enum):
     UP_RIGHT = (1, -1)
 
 
-class WordFinder:
+class Finder:
     """Given a grid and an optional dictionary, finds strands forming words."""
 
     def __init__(

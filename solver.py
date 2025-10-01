@@ -1,8 +1,8 @@
 import logging
 
 from common import Strand
-from grid_coverer import GridCoverer
-from word_finder import WordFinder
+from coverer import Coverer
+from finder import Finder
 
 logger = logging.getLogger(__name__)
 
@@ -20,12 +20,12 @@ class Solver:
         """
 
         logger.info("Finding all words")
-        finder = WordFinder(grid=self.grid)
+        finder = Finder(grid=self.grid)
         words = finder.find_all_words()
         logger.info(f"Found {len(words)} words")
 
         logger.info("Covering grid")
-        coverer = GridCoverer(grid=self.grid, strands=words)
+        coverer = Coverer(grid=self.grid, strands=words)
         solutions = coverer.cover()
         logger.info("Covered grid")
 
