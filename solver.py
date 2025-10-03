@@ -28,16 +28,21 @@ class Solver:
         logger.info(f"Found {len(words)} words")
 
         logger.info("Covering grid")
-        solutions = self.coverer.cover(words)
-        logger.info(f"Found {len(solutions)} solutions before spangram check")
+        covers = self.coverer.cover(words)
+        logger.info(f"Found {len(covers)} covers")
 
-        solutions = [
-            solution
-            for solution in solutions
-            if any(
-                strand.is_spangram(self.num_rows, self.num_cols) for strand in solution
+        # Find covers which contain a single spangram
+        solutions = []
+        for cover in covers:
+            num_spangrams = len(
+                [
+                    strand
+                    for strand in cover
+                    if strand.is_spangram(self.num_rows, self.num_cols)
+                ]
             )
-        ]
-        logger.info(f"Found {len(solutions)} solutions after spangram check")
+            if num_spangrams == 1:
+                solutions.append(cover)
+        logger.info(f"Found {len(solutions)} solutions")
 
         return solutions
