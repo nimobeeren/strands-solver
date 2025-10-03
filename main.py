@@ -6,7 +6,7 @@ from pprint import pformat
 
 from coverer import Coverer
 from finder import Finder
-from ocr import load_grid_from_csv
+from ocr import load_grid_from_json
 from solver import Solver
 
 logging.basicConfig(
@@ -21,7 +21,7 @@ if __name__ == "__main__":
     parser.add_argument("grid", type=str)
     args = parser.parse_args()
 
-    grid = load_grid_from_csv(args.grid)
+    grid = load_grid_from_json(args.grid)
 
     logger.info("Solving puzzle:")
     for row in grid:

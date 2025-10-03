@@ -12,10 +12,10 @@ The dictionary will be automatically downloaded on first use.
 
 1. Take a screenshot of the puzzle.
 
-2. Recognize the characters of the puzzle grid and save them to a CSV file:
+2. Recognize the characters of the puzzle grid and save them to a JSON file:
 
 ```bash
-uv run ocr.py path_to_puzzle.jpeg path_to_puzzle.csv
+uv run ocr.py path_to_puzzle.jpeg path_to_puzzle.json
 ```
 
 Note: the defaults are tuned for iPhone 15 screenshots (1179 × 2556 px resolution); for other devices, you may need to adjust parameters. Run `uv run ocr.py --help` for more information.
@@ -23,11 +23,10 @@ Note: the defaults are tuned for iPhone 15 screenshots (1179 × 2556 px reso
 3. Run the solver:
 
 ```bash
-uv run main.py path_to_puzzle.csv
+uv run main.py path_to_puzzle.json
 ```
 
 ## Limitations
-
 
 - The solver will only find a solution if the spangram is a single word. In reality, it often consists of multiple concatenated words.
 - The dictionary (`dictionary.py`) uses the [ENABLE1](https://rressler.quarto.pub/i_data_sets/data_word_lists.html) word list, which is comprehensive but may occasionally miss some valid words or include uncommon ones. This may cause the solver to fail to find a valid solution.

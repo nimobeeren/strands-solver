@@ -1,7 +1,7 @@
 """Wonky AI-generated code to extract the puzzle grid from a screenshot."""
 
 import argparse
-import csv
+import json
 import logging
 import sys
 from collections import deque
@@ -286,8 +286,8 @@ def load_image(image_path: str | Path) -> Image.Image:
     return img.convert("RGB")
 
 
-def save_grid_to_csv(grid: Sequence[Sequence[str]], csv_path: str | Path) -> None:
-    """Save a 2D grid of letters to a CSV file with basic validation.
+def save_grid_to_json(grid: Sequence[Sequence[str]], json_path: str | Path) -> None:
+    """Save a 2D grid of letters to a JSON file with basic validation.
 
     Validation rules:
     - Grid must be non-empty and rectangular (all rows same length)
@@ -311,48 +311,66 @@ def save_grid_to_csv(grid: Sequence[Sequence[str]], csv_path: str | Path) -> Non
                     f"Invalid cell at ({r_idx},{c_idx}): '{cell}'. Must be '', or A-Z."
                 )
 
-    out_path = Path(csv_path)
+    out_path = Path(json_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    with out_path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        for row in grid:
-            writer.writerow([cell.strip().upper() for cell in row])
+    normalized_grid = [[cell.strip().upper() for cell in row] for row in grid]
+    with out_path.open("w", encoding="utf-8") as f:
+        f.write("{\n")
+        f.write('  "puzzle": [\n')
+        for i, row in enumerate(normalized_grid):
+            row_json = json.dumps(row)
+            if i < len(normalized_grid) - 1:
+                f.write("    " + row_json + ",\n")
+            else:
+                f.write("    " + row_json + "\n")
+        f.write("  ]\n")
+        f.write("}\n")
 
 
-def load_grid_from_csv(
-    csv_path: str | Path,
+def load_grid_from_json(
+    json_path: str | Path,
     *,
     expected_rows: int | None = None,
     expected_cols: int | None = None,
     allow_blank: bool = True,
 ) -> list[list[str]]:
-    """Load a grid from CSV and return a 2D list of strings with validation.
+    """Load a grid from JSON and return a 2D list of strings with validation.
 
     - Validates rectangular shape
     - Optionally validates row/column count
     - Validates each cell is a single A-Z letter; blanks optionally allowed
     """
-    path = Path(csv_path)
+    path = Path(json_path)
     if not path.exists():
-        raise FileNotFoundError(f"CSV not found: {path}")
+        raise FileNotFoundError(f"JSON not found: {path}")
+
+    with path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    if not isinstance(data, dict) or "puzzle" not in data:
+        raise ValueError("JSON must contain a 'puzzle' key")
+
+    raw_grid = data["puzzle"]
+    if not isinstance(raw_grid, list):
+        raise ValueError("Puzzle data must be a list")
 
     rows: list[list[str]] = []
-    with path.open("r", newline="", encoding="utf-8") as f:
-        reader = csv.reader(f)
-        for raw_row in reader:
-            # Normalize each cell: strip and uppercase
-            normalized = [cell.strip().upper() for cell in raw_row]
-            rows.append(normalized)
+    for raw_row in raw_grid:
+        if not isinstance(raw_row, list):
+            raise ValueError("Each row in puzzle must be a list")
+        # Normalize each cell: strip and uppercase
+        normalized = [str(cell).strip().upper() for cell in raw_row]
+        rows.append(normalized)
 
     if not rows:
-        raise ValueError("CSV is empty; expected at least one row")
+        raise ValueError("JSON puzzle is empty; expected at least one row")
 
     # Rectangular validation
     num_cols = len(rows[0])
     for r_idx, row in enumerate(rows):
         if len(row) != num_cols:
             raise ValueError(
-                f"CSV is not rectangular: row 0 has {num_cols} cols, row {r_idx} has {len(row)}"
+                f"JSON puzzle is not rectangular: row 0 has {num_cols} cols, row {r_idx} has {len(row)}"
             )
 
     if expected_rows is not None and len(rows) != expected_rows:
@@ -380,9 +398,9 @@ def load_grid_from_csv(
     return rows
 
 
-def process_image_to_csv(
+def process_image_to_json(
     image_path: str | Path,
-    csv_path: str | Path,
+    json_path: str | Path,
     *,
     rows: int = 8,
     cols: int = 6,
@@ -390,7 +408,7 @@ def process_image_to_csv(
     origin_x: int = 70,
     origin_y: int = 900,
 ) -> None:
-    """High-level helper: load image, extract grid, save as CSV."""
+    """High-level helper: load image, extract grid, save as JSON."""
     image = load_image(image_path)
     grid = extract_grid(
         image,
@@ -400,15 +418,15 @@ def process_image_to_csv(
         origin_x=origin_x,
         origin_y=origin_y,
     )
-    save_grid_to_csv(grid, csv_path)
+    save_grid_to_json(grid, json_path)
 
 
 def _cli_parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Extract Strands grid from screenshot and save as CSV"
+        description="Extract Strands grid from screenshot and save as JSON"
     )
     parser.add_argument("image", help="Path to screenshot image")
-    parser.add_argument("csv", help="Path to output CSV")
+    parser.add_argument("json", help="Path to output JSON")
     parser.add_argument(
         "--rows", type=int, default=8, help="Number of grid rows (default: 8)"
     )
@@ -439,9 +457,9 @@ def _cli_parse_args(argv: list[str]) -> argparse.Namespace:
 def cli_main(argv: list[str] | None = None) -> int:
     args = _cli_parse_args(list(argv) if argv is not None else sys.argv[1:])
     try:
-        process_image_to_csv(
+        process_image_to_json(
             args.image,
-            args.csv,
+            args.json,
             rows=args.rows,
             cols=args.cols,
             tile_size=args.tile_size,
@@ -449,8 +467,8 @@ def cli_main(argv: list[str] | None = None) -> int:
             origin_y=args.origin_y,
         )
         if args.print:
-            grid = load_grid_from_csv(
-                args.csv, expected_rows=args.rows, expected_cols=args.cols
+            grid = load_grid_from_json(
+                args.json, expected_rows=args.rows, expected_cols=args.cols
             )
             for row in grid:
                 logger.info(",".join(row))
