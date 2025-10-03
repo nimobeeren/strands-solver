@@ -29,7 +29,7 @@ class Finder:
         self.num_rows = len(grid)
         self.num_cols = len(grid[0])
 
-        logger.info("Loading wordset")
+        logger.info("Loading dictionary")
         if dictionary is None:
             dictionary = load_dictionary()
         self.dictionary = dictionary
