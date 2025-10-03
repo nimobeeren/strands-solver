@@ -28,8 +28,9 @@ uv run main.py path_to_puzzle.csv
 
 ## Limitations
 
-- The dictionary (`dictionary.py`) uses the [ENABLE1](https://rressler.quarto.pub/i_data_sets/data_word_lists.html) word list, which is comprehensive but may occasionally miss some valid words or include uncommon ones. This may cause the solver to fail to find a valid solution.
+- The solver does not check whether the solution contains a spangram (yet).
 - The solver will not find the correct solution if the spangram consists of multiple concatenated words (which is often the case). It can only find a solution if the spangram is a single word or if it consists of words which are 4 letters or longer (which it will find as separate words).
+- The dictionary (`dictionary.py`) uses the [ENABLE1](https://rressler.quarto.pub/i_data_sets/data_word_lists.html) word list, which is comprehensive but may occasionally miss some valid words or include uncommon ones. This may cause the solver to fail to find a valid solution.
 
 ## Development
 
