@@ -28,14 +28,13 @@ if __name__ == "__main__":
     solver = Solver(grid)
     solutions = solver.solve()
 
-    logging.info(f"Found {len(solutions)} solution(s)")
-
     if solutions:
         logging.info(f"First solution:\n{pformat(solutions[0])}")
 
         # Write each solution to its own file in out/ directory
         output_dir = Path("out")
-        shutil.rmtree(output_dir)
+        if output_dir.exists():
+            shutil.rmtree(output_dir)
         output_dir.mkdir()
 
         puzzle_name = Path(args.grid).stem
