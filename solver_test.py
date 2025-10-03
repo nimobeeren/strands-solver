@@ -1,3 +1,5 @@
+from coverer import Coverer
+from finder import Finder
 from solver import Solver
 from common import Strand
 
@@ -9,7 +11,9 @@ def test_solve():
         ["C", "O", "O", "L"],
         ["E", "A", "S", "Y"],
     ]
-    solver = Solver(grid)
+    finder = Finder(grid)
+    coverer = Coverer(grid)
+    solver = Solver(grid, finder=finder, coverer=coverer)
     solutions = solver.solve()
 
     # Should find at least one solution
@@ -36,7 +40,9 @@ def test_solve_single_spangram():
     # But there is only one solution which does contain a spangram, namely:
     # WATERMELON (spangram) + TOAD + FROG
 
-    solver = Solver(grid)
+    finder = Finder(grid)
+    coverer = Coverer(grid)
+    solver = Solver(grid, finder=finder, coverer=coverer)
     solutions = solver.solve()
 
     assert len(solutions) == 1

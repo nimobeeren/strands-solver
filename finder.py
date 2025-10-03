@@ -36,12 +36,12 @@ class Finder:
         self.sorted_dictionary = sorted(dictionary)
         logger.info(f"Loaded {len(dictionary)} words")
 
-    def find_all_words(self) -> list[Strand]:
+    def find_all_words(self, min_length=4) -> list[Strand]:
         """Finds all strands forming words in the grid."""
         words: list[Strand] = []
         for x in range(self.num_cols):
             for y in range(self.num_rows):
-                words += self.find_words(current_pos=(x, y))
+                words += self.find_words(current_pos=(x, y), min_length=min_length)
         return words
 
     def find_words(

@@ -8,8 +8,10 @@ logger = logging.getLogger(__name__)
 
 
 class Solver:
-    def __init__(self, grid: list[list[str]]):
+    def __init__(self, grid: list[list[str]], *, finder: Finder, coverer: Coverer):
         self.grid = grid
+        self.finder = finder
+        self.coverer = coverer
         self.num_rows = len(grid)
         self.num_cols = len(grid[0])
 
@@ -22,16 +24,13 @@ class Solver:
         """
 
         logger.info("Finding all words")
-        finder = Finder(grid=self.grid)
-        words = finder.find_all_words()
+        words = self.finder.find_all_words()
         logger.info(f"Found {len(words)} words")
 
         logger.info("Covering grid")
-        coverer = Coverer(grid=self.grid, strands=words)
-        solutions = coverer.cover()
+        solutions = self.coverer.cover(words)
         logger.info(f"Found {len(solutions)} solutions before spangram check")
 
-        logger.info("Checking for spangrams")
         solutions = [
             solution
             for solution in solutions

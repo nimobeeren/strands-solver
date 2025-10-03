@@ -9,23 +9,19 @@ class Coverer:
     """Given a grid and a list of strands, tries to find ways to cover every cell of
     the grid with a subset of the strands without overlapping."""
 
-    def __init__(self, *, grid: list[list[str]], strands: list[Strand]):
+    def __init__(self, grid: list[list[str]]):
         self.grid = grid
         self.num_rows = len(grid)
         self.num_cols = len(grid[0])
         self.num_cells = self.num_rows * self.num_cols
-        self.strands = strands
 
-        logger.info("Building indices")
-        self.strand_masks, self.cell_to_strand_idx = self._build_indices()
-        logger.info("Built indices")
-
-    def cover(self) -> list[list[Strand]]:
+    def cover(self, strands: list[Strand]) -> list[list[Strand]]:
         """Finds ways to cover the entire grid with strands without overlapping."""
+        self.strand_masks, self.cell_to_strand_idx = self._build_indices(strands)
         results = self._cover_rec()
 
         # Map indices back to Strands
-        return [[self.strands[i] for i in result] for result in results]
+        return [[strands[i] for i in result] for result in results]
 
     def _cover_rec(self, *, covered_mask: int = 0) -> list[list[int]]:
         """Recursive backtracking search that covers all grid cells exactly once using
@@ -84,7 +80,7 @@ class Coverer:
 
         return solutions
 
-    def _build_indices(self):
+    def _build_indices(self, strands: list[Strand]):
         """Computes:
         - `strand_masks`: bit mask per strand (1 bit per grid cell it covers)
         - `cell_to_strands`: for each cell index, list of strand indices that cover it
@@ -92,7 +88,7 @@ class Coverer:
         strand_masks: list[int] = []
         cell_to_strands: list[list[int]] = [[] for _ in range(self.num_cells)]
 
-        for i, strand in enumerate(self.strands):
+        for i, strand in enumerate(strands):
             mask = 0
             for x, y in strand.positions:
                 bit_index = y * self.num_cols + x

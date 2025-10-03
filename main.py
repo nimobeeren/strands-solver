@@ -4,6 +4,8 @@ import shutil
 from pathlib import Path
 from pprint import pformat
 
+from coverer import Coverer
+from finder import Finder
 from ocr import load_grid_from_csv
 from solver import Solver
 
@@ -25,7 +27,9 @@ if __name__ == "__main__":
     for row in grid:
         logger.info(" ".join(row))
 
-    solver = Solver(grid)
+    finder = Finder(grid)
+    coverer = Coverer(grid)
+    solver = Solver(grid, finder=finder, coverer=coverer)
     solutions = solver.solve()
 
     if solutions:
