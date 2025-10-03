@@ -22,13 +22,13 @@ class Strand:
         touches_bottom = False
         touches_left = False
         touches_top = False
-        for pos in self.positions:
-            if pos[0] == 0:
+        for x, y in self.positions:
+            if x == 0:
                 touches_left = True
-            elif pos[0] == grid_cols - 1:
+            if x == grid_cols - 1:
                 touches_right = True
-            elif pos[1] == 0:
+            if y == 0:
                 touches_top = True
-            elif pos[1] == grid_rows - 1:
+            if y == grid_rows - 1:
                 touches_bottom = True
         return (touches_left and touches_right) or (touches_top and touches_bottom)
