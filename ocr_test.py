@@ -16,3 +16,9 @@ def test_extract_grid():
         ["E", "U", "S", "A", "D", "S"],
         ["L", "Y", "R", "E", "L", "T"],
     ]
+
+
+def test_extract_theme():
+    image = Image.open("./puzzles/2025-09-14.jpeg")
+    result = ocr.extract_theme(image)
+    assert result == "Hurry up!"

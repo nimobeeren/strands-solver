@@ -238,25 +238,84 @@ def _looks_like_I(binary_img: Image.Image) -> bool:
     return False
 
 
+def extract_theme(
+    image: Image.Image,
+    *,
+    theme_top_left_x: float = 0.0492957746,
+    theme_top_left_y: float = 0.2093114241,
+    theme_bottom_right_x: float = 0.4123630673,
+    theme_bottom_right_y: float = 0.2488262911,
+) -> str:
+    """Extracts the theme text from an iPhone screenshot.
+
+    All spatial parameters are relative to image height:
+    - theme_top_left_x: left edge of theme region (default ~0.0493)
+    - theme_top_left_y: top edge of theme region (default ~0.2093)
+    - theme_bottom_right_x: right edge of theme region (default ~0.4124)
+    - theme_bottom_right_y: bottom edge of theme region (default ~0.2488)
+
+    Other devices may need adjustments to these parameters.
+    """
+    _maybe_set_tesseract_path()
+
+    img_width, img_height = image.size
+    top_left_x_px = int(theme_top_left_x * img_height)
+    top_left_y_px = int(theme_top_left_y * img_height)
+    bottom_right_x_px = int(theme_bottom_right_x * img_height)
+    bottom_right_y_px = int(theme_bottom_right_y * img_height)
+
+    # Crop the theme region
+    theme_region = image.crop(
+        (top_left_x_px, top_left_y_px, bottom_right_x_px, bottom_right_y_px)
+    )
+
+    # Preprocess the theme region for better OCR results
+    theme_region = ImageOps.grayscale(theme_region)
+    theme_region = ImageEnhance.Contrast(theme_region).enhance(2.0)
+    theme_region = ImageOps.autocontrast(theme_region, cutoff=0)
+    theme_region = theme_region.resize(
+        (theme_region.width * 2, theme_region.height * 2),
+        Image.BICUBIC,  # pyright: ignore[reportAttributeAccessIssue]
+    )
+
+    # Use PSM 7 for single line text
+    config = "--psm 7"
+    theme_text = pytesseract.image_to_string(theme_region, config=config).strip()
+
+    return theme_text
+
+
 def extract_grid(
     image: Image.Image,
     *,
     rows: int = 8,
     cols: int = 6,
-    tile_size: int = 170,
-    origin_x: int = 70,
-    origin_y: int = 900,
+    tile_size: float = 0.0665,
+    origin_x: float = 0.0274,
+    origin_y: float = 0.3521,
 ) -> list[list[str]]:
-    """Extracts a grid of characters from an iPhone screenshot. Other devices may need
-    adjustments to tile_size and origin parameters."""
+    """Extracts a grid of characters from an iPhone screenshot.
+
+    All spatial parameters are relative to image height:
+    - tile_size: size of each tile (default ~0.0665)
+    - origin_x: left edge of grid (default ~0.0274)
+    - origin_y: top edge of grid, where 0.0=top and 1.0=bottom (default ~0.3521)
+
+    Other devices may need adjustments to these parameters.
+    """
+    img_width, img_height = image.size
+    tile_size_px = int(tile_size * img_height)
+    origin_x_px = int(origin_x * img_height)
+    origin_y_px = int(origin_y * img_height)
+
     grid: list[list[str]] = []
     for r in range(rows):
         row_letters: list[str] = []
         for c in range(cols):
-            left = origin_x + c * tile_size
-            top = origin_y + r * tile_size
-            right = left + tile_size
-            bottom = top + tile_size
+            left = origin_x_px + c * tile_size_px
+            top = origin_y_px + r * tile_size_px
+            right = left + tile_size_px
+            bottom = top + tile_size_px
             tile = image.crop((left, top, right, bottom))
             bin_img = _to_binary(tile)
             holes = _count_holes(bin_img)
@@ -286,12 +345,15 @@ def load_image(image_path: str | Path) -> Image.Image:
     return img.convert("RGB")
 
 
-def save_grid_to_json(grid: Sequence[Sequence[str]], json_path: str | Path) -> None:
+def save_grid_to_json(
+    grid: Sequence[Sequence[str]], json_path: str | Path, *, theme: str | None = None
+) -> None:
     """Save a 2D grid of letters to a JSON file with basic validation.
 
     Validation rules:
     - Grid must be non-empty and rectangular (all rows same length)
     - Each cell must be a single uppercase A-Z letter or empty string
+    - Theme (if provided) is saved as a string field
     """
     # Basic structure checks
     if not grid or not grid[0]:
@@ -316,6 +378,8 @@ def save_grid_to_json(grid: Sequence[Sequence[str]], json_path: str | Path) -> N
     normalized_grid = [[cell.strip().upper() for cell in row] for row in grid]
     with out_path.open("w", encoding="utf-8") as f:
         f.write("{\n")
+        if theme is not None:
+            f.write(f'  "theme": {json.dumps(theme)},\n')
         f.write('  "puzzle": [\n')
         for i, row in enumerate(normalized_grid):
             row_json = json.dumps(row)
@@ -404,12 +468,21 @@ def process_image_to_json(
     *,
     rows: int = 8,
     cols: int = 6,
-    tile_size: int = 170,
-    origin_x: int = 70,
-    origin_y: int = 900,
+    tile_size: float = 0.0665,
+    origin_x: float = 0.0274,
+    origin_y: float = 0.3521,
+    extract_theme_flag: bool = True,
 ) -> None:
-    """High-level helper: load image, extract grid, save as JSON."""
+    """High-level helper: load image, extract grid, save as JSON.
+
+    All spatial parameters are relative to image height (0.0=top, 1.0=bottom).
+    """
     image = load_image(image_path)
+
+    theme = None
+    if extract_theme_flag:
+        theme = extract_theme(image)
+
     grid = extract_grid(
         image,
         rows=rows,
@@ -418,7 +491,7 @@ def process_image_to_json(
         origin_x=origin_x,
         origin_y=origin_y,
     )
-    save_grid_to_json(grid, json_path)
+    save_grid_to_json(grid, json_path, theme=theme)
 
 
 def _cli_parse_args(argv: list[str]) -> argparse.Namespace:
@@ -434,19 +507,22 @@ def _cli_parse_args(argv: list[str]) -> argparse.Namespace:
         "--cols", type=int, default=6, help="Number of grid columns (default: 6)"
     )
     parser.add_argument(
-        "--tile-size", type=int, default=170, help="Tile size in pixels (default: 170)"
+        "--tile-size",
+        type=float,
+        default=0.0665,
+        help="Tile size relative to image height (default: 0.0665)",
     )
     parser.add_argument(
         "--origin-x",
-        type=int,
-        default=70,
-        help="Left origin of the grid in pixels (default: 70)",
+        type=float,
+        default=0.0274,
+        help="Left origin relative to image height (default: 0.0274)",
     )
     parser.add_argument(
         "--origin-y",
-        type=int,
-        default=900,
-        help="Top origin of the grid in pixels (default: 900)",
+        type=float,
+        default=0.3521,
+        help="Top origin relative to image height, 0.0=top 1.0=bottom (default: 0.3521)",
     )
     parser.add_argument(
         "--print", action="store_true", help="Print the extracted grid to stdout"

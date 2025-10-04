@@ -12,13 +12,13 @@ The dictionary will be automatically downloaded on first use.
 
 1. Take a screenshot of the puzzle.
 
-2. Recognize the characters of the puzzle grid and save them to a JSON file:
+2. Recognize the puzzle grid and theme and save them to a JSON file:
 
 ```bash
 uv run ocr.py path_to_puzzle.jpeg path_to_puzzle.json
 ```
 
-Note: the defaults are tuned for iPhone 15 screenshots (1179 × 2556 px resolution); for other devices, you may need to adjust parameters. Run `uv run ocr.py --help` for more information.
+Note: the defaults are tuned for iPhone 15 screenshots. All spatial parameters are relative to image height (0.0=top, 1.0=bottom), making them resolution-independent. For other devices or layouts, you may need to adjust the `--tile-size`, `--origin-x`, and `--origin-y` parameters. Run `uv run ocr.py --help` for more information.
 
 3. Run the solver:
 
