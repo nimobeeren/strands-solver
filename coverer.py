@@ -15,13 +15,15 @@ class Coverer:
         self.num_cols = len(grid[0])
         self.num_cells = self.num_rows * self.num_cols
 
-    def cover(self, strands: list[Strand]) -> list[list[Strand]]:
+    def cover(self, strands: set[Strand] | list[Strand]) -> set[frozenset[Strand]]:
         """Finds ways to cover the entire grid with strands without overlapping."""
-        self.strand_masks, self.cell_to_strand_idx = self._build_indices(strands)
+        # Convert to list for indexing
+        strands_list = list(strands)
+        self.strand_masks, self.cell_to_strand_idx = self._build_indices(strands_list)
         results = self._cover_rec()
 
         # Map indices back to Strands
-        return [[strands[i] for i in result] for result in results]
+        return {frozenset(strands_list[i] for i in result) for result in results}
 
     def _cover_rec(self, *, covered_mask: int = 0) -> list[list[int]]:
         """Recursive backtracking search that covers all grid cells exactly once using

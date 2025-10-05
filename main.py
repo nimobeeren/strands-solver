@@ -30,7 +30,7 @@ if __name__ == "__main__":
     finder = Finder(grid)
     coverer = Coverer(grid)
     solver = Solver(grid, finder=finder, coverer=coverer)
-    solutions = solver.solve()
+    solutions = list(solver.solve())
 
     if solutions:
         logging.info(f"First solution:\n{pformat(solutions[0])}")

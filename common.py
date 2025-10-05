@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(frozen=True)
 class Strand:
-    positions: list[tuple[int, int]]
+    positions: tuple[tuple[int, int], ...]
     """Sequence of positions that the strand occupies."""
     string: str
     """String formed by concatenating the letters in the grid at each position."""

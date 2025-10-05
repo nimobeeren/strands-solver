@@ -15,11 +15,11 @@ class Solver:
         self.num_rows = len(grid)
         self.num_cols = len(grid[0])
 
-    def solve(self) -> list[list[Strand]]:
+    def solve(self) -> set[frozenset[Strand]]:
         """Solve the puzzle by finding all words in the grid and then finding all ways
         to exactly cover the grid with those words.
 
-        Returns a list of solutions, where each solution is a list of strands covering
+        Returns a set of solutions, where each solution is a set of strands covering
         the grid.
         """
 
@@ -38,7 +38,7 @@ class Solver:
         logger.info(f"Found {len(covers)} covers")
 
         # Find covers which contain a single spangram
-        solutions = []
+        solutions = set()
         for cover in covers:
             num_spangrams = len(
                 [
@@ -48,13 +48,13 @@ class Solver:
                 ]
             )
             if num_spangrams == 1:
-                solutions.append(cover)
+                solutions.add(cover)
         logger.info(f"Found {len(solutions)} covers with a single spangram")
 
         return solutions
 
     @staticmethod
-    def _filter_duplicate_words(words: list[Strand]) -> list[Strand]:
+    def _filter_duplicate_words(words: set[Strand]) -> set[Strand]:
         """Filter out words that appear in different places.
 
         If a word appears multiple times using different sets of positions, we filter
@@ -73,11 +73,11 @@ class Solver:
             words_by_string[strand.string].append(strand)
 
         # Filter out words that have instances with different position sets
-        filtered = []
+        filtered = set()
         for word_string, strands in words_by_string.items():
             if len(strands) == 1:
                 # Only one instance, keep it
-                filtered.extend(strands)
+                filtered.update(strands)
             else:
                 # Check if all instances use the exact same set of positions
                 first_positions = set(strands[0].positions)
@@ -88,7 +88,7 @@ class Solver:
                 if all_same_positions:
                     # All instances use the same positions (different traversal orders)
                     # Keep them all and let the covering algorithm choose
-                    filtered.extend(strands)
+                    filtered.update(strands)
                 # Otherwise, filter out all instances (different position sets)
 
         return filtered

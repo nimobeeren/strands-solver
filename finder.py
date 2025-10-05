@@ -36,29 +36,29 @@ class Finder:
         self.sorted_dictionary = sorted(dictionary)
         logger.info(f"Loaded {len(dictionary)} words")
 
-    def find_all_words(self, min_length=4) -> list[Strand]:
+    def find_all_words(self, min_length=4) -> set[Strand]:
         """Finds all strands forming words in the grid."""
-        words: list[Strand] = []
+        words: set[Strand] = set()
         for x in range(self.num_cols):
             for y in range(self.num_rows):
-                words += self.find_words(current_pos=(x, y), min_length=min_length)
+                words |= self.find_words(current_pos=(x, y), min_length=min_length)
         return words
 
     def find_words(
         self,
         *,
         current_pos: tuple[int, int],
-        prefix: Strand = Strand(positions=[], string=""),
+        prefix: Strand = Strand(positions=(), string=""),
         min_length=4,
-    ) -> list[Strand]:
+    ) -> set[Strand]:
         """Finds strands forming words in the grid starting with the `prefix` strand and
         continuing at `current_pos` without overlapping with the `prefix` strand."""
-        words: list[Strand] = []
+        words: set[Strand] = set()
         x, y = current_pos
 
         # Create a candidate strand by taking the prefix strand and adding the letter at `current_pos` to it
         candidate = Strand(
-            positions=prefix.positions + [(x, y)],
+            positions=prefix.positions + ((x, y),),
             string=prefix.string + self.grid[y][x],
         )
 
@@ -67,7 +67,7 @@ class Finder:
 
         if len(candidate.string) >= min_length and self.is_word(candidate.string):
             logger.debug(f"Found word: {candidate.string}")
-            words.append(candidate)
+            words.add(candidate)
 
         for dir in Direction:
             dx, dy = dir.value
@@ -83,7 +83,7 @@ class Finder:
             if (next_x, next_y) in candidate.positions:
                 continue  # next position overlaps
 
-            words += self.find_words(
+            words |= self.find_words(
                 current_pos=(next_x, next_y),
                 prefix=candidate,
                 min_length=min_length,
