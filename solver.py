@@ -27,6 +27,12 @@ class Solver:
         words = self.finder.find_all_words()
         logger.info(f"Found {len(words)} words")
 
+        # Filter out words that appear in different places
+        # The words in the final solution never appear in more than one place in
+        # the grid
+        words = self._filter_duplicate_words(words)
+        logger.info(f"After filtering duplicates: {len(words)} words")
+
         logger.info("Covering grid")
         covers = self.coverer.cover(words)
         logger.info(f"Found {len(covers)} covers")
@@ -43,6 +49,46 @@ class Solver:
             )
             if num_spangrams == 1:
                 solutions.append(cover)
-        logger.info(f"Found {len(solutions)} solutions")
+        logger.info(f"Found {len(solutions)} covers with a single spangram")
 
         return solutions
+
+    @staticmethod
+    def _filter_duplicate_words(words: list[Strand]) -> list[Strand]:
+        """Filter out words that appear in different places.
+
+        If a word appears multiple times using different sets of positions, we filter
+        out all instances, since we know the final solution never contains a word which
+        could be formed using different sets of positions.
+
+        If a word appears multiple times using the exact same set of grid positions
+        (just traced in different orders), we keep all instances and let the covering
+        algorithm choose which path to use.
+        """
+        # Group strands by their word string
+        words_by_string: dict[str, list[Strand]] = {}
+        for strand in words:
+            if strand.string not in words_by_string:
+                words_by_string[strand.string] = []
+            words_by_string[strand.string].append(strand)
+
+        # Filter out words that have instances with different position sets
+        filtered = []
+        for word_string, strands in words_by_string.items():
+            if len(strands) == 1:
+                # Only one instance, keep it
+                filtered.extend(strands)
+            else:
+                # Check if all instances use the exact same set of positions
+                first_positions = set(strands[0].positions)
+                all_same_positions = all(
+                    set(strand.positions) == first_positions for strand in strands[1:]
+                )
+
+                if all_same_positions:
+                    # All instances use the same positions (different traversal orders)
+                    # Keep them all and let the covering algorithm choose
+                    filtered.extend(strands)
+                # Otherwise, filter out all instances (different position sets)
+
+        return filtered
