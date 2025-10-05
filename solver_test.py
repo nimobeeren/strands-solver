@@ -89,7 +89,7 @@ def test_filter_duplicate_words():
         # FOOD appears once - should be kept
         Strand(positions=((0, 0), (1, 0), (2, 0), (3, 0)), string="FOOD"),
         # BOSS appears twice using the exact same set of positions (different traversal)
-        # Should be kept - covering algorithm will choose one path
+        # Only one should be kept (the one with lexicographically smallest positions)
         Strand(positions=((5, 2), (5, 1), (4, 0), (5, 0)), string="BOSS"),
         Strand(positions=((5, 2), (5, 1), (5, 0), (4, 0)), string="BOSS"),
         # TEST appears twice in completely different locations - should be filtered out
@@ -107,9 +107,8 @@ def test_filter_duplicate_words():
     expected = {
         # FOOD - unique word
         Strand(positions=((0, 0), (1, 0), (2, 0), (3, 0)), string="FOOD"),
-        # BOSS - same position set (just different traversal order)
+        # BOSS - same position set (just different traversal order), keep the lexicographically smallest
         Strand(positions=((5, 2), (5, 1), (4, 0), (5, 0)), string="BOSS"),
-        Strand(positions=((5, 2), (5, 1), (5, 0), (4, 0)), string="BOSS"),
         # TEST, WORD and WAYS filtered out (different position sets)
     }
 

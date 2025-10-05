@@ -87,8 +87,9 @@ class Solver:
 
                 if all_same_positions:
                     # All instances use the same positions (different traversal orders)
-                    # Keep them all and let the covering algorithm choose
-                    filtered.update(strands)
+                    # Keep the one with lexicographically smallest positions tuple
+                    # This is an arbitrary but consistent way to choose one
+                    filtered.add(min(strands, key=lambda s: s.positions))
                 # Otherwise, filter out all instances (different position sets)
 
         return filtered
