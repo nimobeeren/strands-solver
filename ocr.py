@@ -380,7 +380,7 @@ def save_grid_to_json(
         f.write("{\n")
         if theme is not None:
             f.write(f'  "theme": {json.dumps(theme)},\n')
-        f.write('  "puzzle": [\n')
+        f.write('  "grid": [\n')
         for i, row in enumerate(normalized_grid):
             row_json = json.dumps(row)
             if i < len(normalized_grid) - 1:
@@ -411,30 +411,30 @@ def load_grid_from_json(
     with path.open("r", encoding="utf-8") as f:
         data = json.load(f)
 
-    if not isinstance(data, dict) or "puzzle" not in data:
-        raise ValueError("JSON must contain a 'puzzle' key")
+    if not isinstance(data, dict) or "grid" not in data:
+        raise ValueError("JSON must contain a 'grid' key")
 
-    raw_grid = data["puzzle"]
+    raw_grid = data["grid"]
     if not isinstance(raw_grid, list):
-        raise ValueError("Puzzle data must be a list")
+        raise ValueError("grid data must be a list")
 
     rows: list[list[str]] = []
     for raw_row in raw_grid:
         if not isinstance(raw_row, list):
-            raise ValueError("Each row in puzzle must be a list")
+            raise ValueError("Each row in grid must be a list")
         # Normalize each cell: strip and uppercase
         normalized = [str(cell).strip().upper() for cell in raw_row]
         rows.append(normalized)
 
     if not rows:
-        raise ValueError("JSON puzzle is empty; expected at least one row")
+        raise ValueError("JSON grid is empty; expected at least one row")
 
     # Rectangular validation
     num_cols = len(rows[0])
     for r_idx, row in enumerate(rows):
         if len(row) != num_cols:
             raise ValueError(
-                f"JSON puzzle is not rectangular: row 0 has {num_cols} cols, row {r_idx} has {len(row)}"
+                f"JSON grid is not rectangular: row 0 has {num_cols} cols, row {r_idx} has {len(row)}"
             )
 
     if expected_rows is not None and len(rows) != expected_rows:
