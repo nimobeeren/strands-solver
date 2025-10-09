@@ -17,7 +17,7 @@ class RenderCell:
     """Whether this cell is part of a strand."""
 
 
-def get_letter_cell(
+def _get_letter_cell(
     r: int, c: int, grid: list[list[str]], pos_to_strand: dict[tuple[int, int], int]
 ) -> RenderCell:
     """Gets a letter cell from the original grid.
@@ -38,7 +38,7 @@ def get_letter_cell(
     return RenderCell(content=letter, covered=is_covered)
 
 
-def get_connector_cell(
+def _get_connector_cell(
     render_row: int,
     render_col: int,
     connections: dict[tuple[tuple[int, int], tuple[int, int]], list[int]],
@@ -118,7 +118,7 @@ def get_connector_cell(
     raise ValueError(f"Invalid render row {render_row} and column {render_col}")
 
 
-def build_render_grid(
+def _build_render_grid(
     grid: list[list[str]], strands: Iterable[Strand]
 ) -> list[list[RenderCell]]:
     """Builds the render grid containing both letters and connectors.
@@ -171,10 +171,10 @@ def build_render_grid(
             if render_row % 2 == 0 and render_col % 2 == 0:
                 grid_row = render_row // 2
                 grid_col = render_col // 2
-                cell = get_letter_cell(grid_row, grid_col, grid, pos_to_strand)
+                cell = _get_letter_cell(grid_row, grid_col, grid, pos_to_strand)
             # Any other position: connector cell
             else:
-                cell = get_connector_cell(render_row, render_col, connections)
+                cell = _get_connector_cell(render_row, render_col, connections)
 
             row_cells.append(cell)
         render_grid.append(row_cells)
@@ -182,7 +182,7 @@ def build_render_grid(
     return render_grid
 
 
-def render_grid(data: list[list[RenderCell]]) -> None:
+def _render_grid(data: list[list[RenderCell]]) -> None:
     """Renders the render grid to the console.
 
     Args:
@@ -205,8 +205,8 @@ def render_grid(data: list[list[RenderCell]]) -> None:
 
 def draw(grid: list[list[str]], strands: Iterable[Strand] = []) -> None:
     """Draws a puzzle nicely in the console."""
-    render_grid_data = build_render_grid(grid, strands)
-    render_grid(render_grid_data)
+    render_grid_data = _build_render_grid(grid, strands)
+    _render_grid(render_grid_data)
 
 
 if __name__ == "__main__":
