@@ -30,6 +30,7 @@ uv run main.py path_to_puzzle.json
 
 - The solver will only find a solution if the spangram is a single word. In reality, it often consists of multiple concatenated words.
 - The dictionary (`dictionary.py`) uses the [ENABLE1](https://rressler.quarto.pub/i_data_sets/data_word_lists.html) word list, which is comprehensive but may occasionally miss some valid words or include uncommon ones. This may cause the solver to fail to find a valid solution.
+- The solver may find multiple solutions but it can't determine which one fits the theme best.
 
 ## Development
 
