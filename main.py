@@ -5,6 +5,7 @@ from pathlib import Path
 from pprint import pformat
 
 from coverer import Coverer
+from draw import draw
 from finder import Finder
 from ocr import load_grid_from_json
 from solver import Solver
@@ -23,9 +24,9 @@ if __name__ == "__main__":
 
     grid = load_grid_from_json(args.grid)
 
-    logger.info("Solving puzzle:")
-    for row in grid:
-        logger.info(" ".join(row))
+    logging.info("Solving puzzle:\n")
+    draw(grid)
+    print()
 
     finder = Finder(grid)
     coverer = Coverer(grid)
@@ -33,7 +34,12 @@ if __name__ == "__main__":
     solutions = list(solver.solve())
 
     if solutions:
-        logging.info(f"First solution:\n{pformat(solutions[0])}")
+        logging.info("First solution:\n")
+        draw(grid, solutions[0])
+        print()
+        for strand in solutions[0]:
+            print(f"- {strand.string}")
+        print()
 
         # Write each solution to its own file in out/ directory
         output_dir = Path("out")

@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from rich.console import Console
@@ -118,7 +119,7 @@ def get_connector_cell(
 
 
 def build_render_grid(
-    grid: list[list[str]], strands: list[Strand]
+    grid: list[list[str]], strands: Iterable[Strand]
 ) -> list[list[RenderCell]]:
     """Builds the render grid containing both letters and connectors.
 
@@ -202,7 +203,7 @@ def render_grid(data: list[list[RenderCell]]) -> None:
         console.print(line)
 
 
-def draw(grid: list[list[str]], strands: list[Strand] = []) -> None:
+def draw(grid: list[list[str]], strands: Iterable[Strand] = []) -> None:
     """Draws a puzzle nicely in the console."""
     render_grid_data = build_render_grid(grid, strands)
     render_grid(render_grid_data)
