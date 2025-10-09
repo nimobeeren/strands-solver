@@ -18,49 +18,49 @@ class RenderCell:
 
 
 def _get_letter_cell(
-    r: int, c: int, grid: list[list[str]], pos_to_strand: dict[tuple[int, int], int]
+    x: int, y: int, grid: list[list[str]], pos_to_strand: dict[tuple[int, int], int]
 ) -> RenderCell:
     """Gets a letter cell from the original grid.
 
     Args:
-        r: Row index in the original grid
-        c: Column index in the original grid
+        x: Column index in the original grid
+        y: Row index in the original grid
         grid: The original letter grid
         pos_to_strand: Mapping from position to strand index
 
     Returns:
         A RenderCell containing the letter with appropriate type
     """
-    pos = (r, c)
-    letter = grid[r][c]
+    pos = (x, y)
+    letter = grid[y][x]
     is_covered = pos in pos_to_strand
 
     return RenderCell(content=letter, covered=is_covered)
 
 
 def _get_connector_cell(
-    render_row: int,
-    render_col: int,
+    render_x: int,
+    render_y: int,
     connections: dict[tuple[tuple[int, int], tuple[int, int]], list[int]],
 ) -> RenderCell:
     """Determines the connector type for a space between letters.
 
     Args:
-        render_row: Row index in the render grid
-        render_col: Column index in the render grid
+        render_x: Column index in the render grid
+        render_y: Row index in the render grid
         connections: Mapping from sorted position pairs to strand indices
 
     Returns:
         A RenderCell containing the appropriate connector or empty
     """
     # Even row, odd col: horizontal connector
-    if render_row % 2 == 0 and render_col % 2 == 1:
-        grid_row = render_row // 2
-        grid_col_left = render_col // 2
-        grid_col_right = grid_col_left + 1
+    if render_y % 2 == 0 and render_x % 2 == 1:
+        grid_y = render_y // 2
+        grid_x_left = render_x // 2
+        grid_x_right = grid_x_left + 1
 
-        pos_left = (grid_row, grid_col_left)
-        pos_right = (grid_row, grid_col_right)
+        pos_left = (grid_x_left, grid_y)
+        pos_right = (grid_x_right, grid_y)
         conn_key = tuple(sorted([pos_left, pos_right]))
 
         if conn_key in connections:
@@ -69,13 +69,13 @@ def _get_connector_cell(
             return RenderCell(content=" ")
 
     # Odd row, even col: vertical connector
-    elif render_row % 2 == 1 and render_col % 2 == 0:
-        grid_row_top = render_row // 2
-        grid_row_bottom = grid_row_top + 1
-        grid_col = render_col // 2
+    elif render_y % 2 == 1 and render_x % 2 == 0:
+        grid_y_top = render_y // 2
+        grid_y_bottom = grid_y_top + 1
+        grid_x = render_x // 2
 
-        pos_top = (grid_row_top, grid_col)
-        pos_bottom = (grid_row_bottom, grid_col)
+        pos_top = (grid_x, grid_y_top)
+        pos_bottom = (grid_x, grid_y_bottom)
         conn_key = tuple(sorted([pos_top, pos_bottom]))
 
         if conn_key in connections:
@@ -84,21 +84,21 @@ def _get_connector_cell(
             return RenderCell(content=" ")
 
     # Odd row, odd col: diagonal connectors (may cross)
-    elif render_row % 2 == 1 and render_col % 2 == 1:
-        grid_row_top = render_row // 2
-        grid_row_bottom = grid_row_top + 1
-        grid_col_left = render_col // 2
-        grid_col_right = grid_col_left + 1
+    elif render_y % 2 == 1 and render_x % 2 == 1:
+        grid_y_top = render_y // 2
+        grid_y_bottom = grid_y_top + 1
+        grid_x_left = render_x // 2
+        grid_x_right = grid_x_left + 1
 
         # Check for down-right diagonal: top-left to bottom-right
-        pos_top_left = (grid_row_top, grid_col_left)
-        pos_bottom_right = (grid_row_bottom, grid_col_right)
+        pos_top_left = (grid_x_left, grid_y_top)
+        pos_bottom_right = (grid_x_right, grid_y_bottom)
         conn_key_down_right = tuple(sorted([pos_top_left, pos_bottom_right]))
         has_down_right = conn_key_down_right in connections
 
         # Check for down-left diagonal: top-right to bottom-left
-        pos_top_right = (grid_row_top, grid_col_right)
-        pos_bottom_left = (grid_row_bottom, grid_col_left)
+        pos_top_right = (grid_x_right, grid_y_top)
+        pos_bottom_left = (grid_x_left, grid_y_bottom)
         conn_key_down_left = tuple(sorted([pos_top_right, pos_bottom_left]))
         has_down_left = conn_key_down_left in connections
 
@@ -115,7 +115,7 @@ def _get_connector_cell(
             return RenderCell(content=" ")
 
     # Should not reach here
-    raise ValueError(f"Invalid render row {render_row} and column {render_col}")
+    raise ValueError(f"Invalid render x {render_x} and y {render_y}")
 
 
 def _build_render_grid(
@@ -136,8 +136,8 @@ def _build_render_grid(
     Returns:
         The render grid as a 2D list of RenderCell objects
     """
-    rows = len(grid)
-    cols = len(grid[0]) if rows > 0 else 0
+    height = len(grid)
+    width = len(grid[0]) if height > 0 else 0
 
     # Create a mapping from position to strand index
     pos_to_strand = {}
@@ -146,7 +146,7 @@ def _build_render_grid(
             pos_to_strand[pos] = idx
 
     # Create a mapping for connections between positions
-    # Key: ((r1,c1), (r2,c2)) tuple with sorted positions
+    # Key: ((x1,y1), (x2,y2)) tuple with sorted positions
     # Value: list of strand indices that use this connection
     connections = {}
     for idx, strand in enumerate(strands):
@@ -160,21 +160,21 @@ def _build_render_grid(
             connections[key].append(idx)
 
     # Build the render grid
-    render_rows = 2 * rows - 1
-    render_cols = 2 * cols - 1
+    render_height = 2 * height - 1
+    render_width = 2 * width - 1
     render_grid = []
 
-    for render_row in range(render_rows):
+    for render_y in range(render_height):
         row_cells = []
-        for render_col in range(render_cols):
+        for render_x in range(render_width):
             # Even row, even col: letter cell
-            if render_row % 2 == 0 and render_col % 2 == 0:
-                grid_row = render_row // 2
-                grid_col = render_col // 2
-                cell = _get_letter_cell(grid_row, grid_col, grid, pos_to_strand)
+            if render_y % 2 == 0 and render_x % 2 == 0:
+                grid_x = render_x // 2
+                grid_y = render_y // 2
+                cell = _get_letter_cell(grid_x, grid_y, grid, pos_to_strand)
             # Any other position: connector cell
             else:
-                cell = _get_connector_cell(render_row, render_col, connections)
+                cell = _get_connector_cell(render_x, render_y, connections)
 
             row_cells.append(cell)
         render_grid.append(row_cells)
