@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv run pytest:*)",
+      "Bash(uv run main.py:*)",
+      "Bash(uv run ocr.py:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
