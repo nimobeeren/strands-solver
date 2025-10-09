@@ -15,6 +15,8 @@ class RenderCell:
     """The character to display."""
     covered: bool = False
     """Whether this cell is part of a strand."""
+    strand_indices: list[int] | None = None
+    """The indices of strands that use this cell (for letters or connectors)."""
 
 
 def _get_letter_cell(
@@ -33,15 +35,20 @@ def _get_letter_cell(
     """
     pos = (x, y)
     letter = grid[y][x]
-    is_covered = pos in pos_to_strand
+    strand_idx = pos_to_strand.get(pos)
+    is_covered = strand_idx is not None
 
-    return RenderCell(content=letter, covered=is_covered)
+    return RenderCell(
+        content=letter,
+        covered=is_covered,
+        strand_indices=[strand_idx] if strand_idx is not None else None,
+    )
 
 
 def _get_connector_cell(
     render_x: int,
     render_y: int,
-    connections: dict[tuple[tuple[int, int], tuple[int, int]], list[int]],
+    connections: dict[tuple[tuple[int, int], ...], list[int]],
 ) -> RenderCell:
     """Determines the connector type for a space between letters.
 
@@ -64,7 +71,7 @@ def _get_connector_cell(
         conn_key = tuple(sorted([pos_left, pos_right]))
 
         if conn_key in connections:
-            return RenderCell(content="─")
+            return RenderCell(content="─", strand_indices=connections[conn_key])
         else:
             return RenderCell(content=" ")
 
@@ -79,7 +86,7 @@ def _get_connector_cell(
         conn_key = tuple(sorted([pos_top, pos_bottom]))
 
         if conn_key in connections:
-            return RenderCell(content="│")
+            return RenderCell(content="│", strand_indices=connections[conn_key])
         else:
             return RenderCell(content=" ")
 
@@ -104,13 +111,20 @@ def _get_connector_cell(
 
         if has_down_right and has_down_left:
             # Both diagonals cross
-            return RenderCell(content="╳")
+            all_strands = (
+                connections[conn_key_down_right] + connections[conn_key_down_left]
+            )
+            return RenderCell(content="╳", strand_indices=all_strands)
         elif has_down_right:
             # Down-right diagonal
-            return RenderCell(content="╲")
+            return RenderCell(
+                content="╲", strand_indices=connections[conn_key_down_right]
+            )
         elif has_down_left:
             # Down-left diagonal
-            return RenderCell(content="╱")
+            return RenderCell(
+                content="╱", strand_indices=connections[conn_key_down_left]
+            )
         else:
             return RenderCell(content=" ")
 
@@ -148,7 +162,7 @@ def _build_render_grid(
     # Create a mapping for connections between positions
     # Key: ((x1,y1), (x2,y2)) tuple with sorted positions
     # Value: list of strand indices that use this connection
-    connections = {}
+    connections: dict[tuple[tuple[int, int], ...], list[int]] = {}
     for idx, strand in enumerate(strands):
         for i in range(len(strand.positions) - 1):
             pos1 = strand.positions[i]
@@ -188,17 +202,32 @@ def _render_grid(data: list[list[RenderCell]]) -> None:
     Args:
         render_grid: The render grid to display
     """
+    # Define colors for strands (cycling through if more strands than colors)
+    colors = ["cyan", "magenta", "yellow", "green", "blue", "red"]
+
     console = Console()
     for row in data:
         line = Text()
         for cell in row:
             if cell.content.isalpha():
-                if cell.covered:
-                    style = "bold cyan on cyan"
+                if cell.covered and cell.strand_indices:
+                    # Use the color for this strand
+                    color = colors[cell.strand_indices[0] % len(colors)]
+                    style = f"bold {color} on {color}"
                 else:
                     style = "white"
             else:
-                style = "cyan"
+                # Connector
+                if cell.content == "╳":
+                    # X connector is always white
+                    style = "white"
+                elif cell.strand_indices:
+                    # Use the color of the strand
+                    color = colors[cell.strand_indices[0] % len(colors)]
+                    style = color
+                else:
+                    # Empty space
+                    style = "white"
             line.append(f"{cell.content:^3}", style=style)
         console.print(line)
 
