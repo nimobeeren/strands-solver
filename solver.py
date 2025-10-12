@@ -8,10 +8,13 @@ logger = logging.getLogger(__name__)
 
 
 class Solver:
-    def __init__(self, grid: list[list[str]], *, finder: Finder, coverer: Coverer):
+    def __init__(
+        self, grid: list[list[str]], *, finder: Finder, coverer: Coverer, num_words: int | None = None
+    ):
         self.grid = grid
         self.finder = finder
         self.coverer = coverer
+        self.num_words = num_words
         self.num_rows = len(grid)
         self.num_cols = len(grid[0])
 
@@ -37,18 +40,27 @@ class Solver:
         covers = self.coverer.cover(words)
         logger.info(f"Found {len(covers)} covers")
 
-        # Find covers which contain at least one spangram
-        solutions = set()
+        # Find covers which have the correct number of words
+        covers_with_correct_num_words = set()
         for cover in covers:
+            if self.num_words is None or len(cover) == self.num_words:
+                covers_with_correct_num_words.add(cover)
+        logger.info(
+            f"Found {len(covers_with_correct_num_words)} covers with the correct number of words"
+        )
+
+        # Find covers which contain at least one spangram
+        covers_with_spangram = set()
+        for cover in covers_with_correct_num_words:
             if any(
                 strand
                 for strand in cover
                 if strand.is_spangram(self.num_rows, self.num_cols)
             ):
-                solutions.add(cover)
-        logger.info(f"Found {len(solutions)} covers with a spangram")
+                covers_with_spangram.add(cover)
+        logger.info(f"Found {len(covers_with_spangram)} covers with a spangram")
 
-        return solutions
+        return covers_with_spangram
 
     @staticmethod
     def _filter_duplicate_words(words: set[Strand]) -> set[Strand]:

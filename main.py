@@ -38,7 +38,7 @@ if __name__ == "__main__":
 
     finder = Finder(grid)
     coverer = Coverer(grid)
-    solver = Solver(grid, finder=finder, coverer=coverer)
+    solver = Solver(grid, finder=finder, coverer=coverer, num_words=num_words)
     solutions = list(solver.solve())
 
     if solutions:
