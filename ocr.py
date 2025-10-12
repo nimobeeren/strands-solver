@@ -1,6 +1,7 @@
 """Wonky AI-generated code to extract the puzzle grid from a screenshot."""
 
 import argparse
+import asyncio
 import json
 import logging
 import sys
@@ -33,7 +34,10 @@ def _maybe_set_tesseract_path() -> None:
 
 
 def _generate_variants(tile: Image.Image) -> list[Image.Image]:
-    """Produce a handful of preprocessing variants for robust OCR."""
+    """Produce a handful of preprocessing variants for robust OCR.
+
+    Variants are ordered from most likely to succeed to least likely for early stopping.
+    """
     variants: list[Image.Image] = []
 
     def prep(
@@ -52,20 +56,20 @@ def _generate_variants(tile: Image.Image) -> list[Image.Image]:
             img = ImageOps.invert(img.convert("L"))
         return img
 
-    # Balanced
+    # Balanced - most reliable variants first
     variants.append(prep(0.12, 2.0, True, False))
     variants.append(prep(0.12, 2.0, True, True))
-    # No threshold
+    # No threshold variants
     variants.append(prep(0.12, 2.2, False, False))
     variants.append(prep(0.12, 2.2, False, True))
-    # Smaller crop
+    # Alternative crops and contrasts
     variants.append(prep(0.08, 2.0, True, False))
-    # Higher contrast without threshold
     variants.append(prep(0.10, 3.0, False, False))
     return variants
 
 
-def _ocr_letter(tile: Image.Image) -> str:
+def _ocr_letter_sync(tile: Image.Image, *, high_conf_threshold: int = 85) -> str:
+    """Synchronous OCR for a single tile."""
     _maybe_set_tesseract_path()
     config = "--psm 10 --oem 3 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
@@ -92,6 +96,9 @@ def _ocr_letter(tile: Image.Image) -> str:
                 if conf_int > best_conf:
                     best_conf = conf_int
                     best_char = c
+                    # Early stopping: if confidence is high enough, no need to try more variants
+                    if best_conf >= high_conf_threshold:
+                        return best_char
         except Exception:
             # Fall back to simple recognition for this variant
             txt = pytesseract.image_to_string(variant, config=config).strip().upper()
@@ -101,6 +108,13 @@ def _ocr_letter(tile: Image.Image) -> str:
                 best_conf = 0
 
     return best_char
+
+
+async def _ocr_letter(tile: Image.Image, *, high_conf_threshold: int = 85) -> str:
+    """Async wrapper for OCR that runs in a thread pool."""
+    return await asyncio.to_thread(
+        _ocr_letter_sync, tile, high_conf_threshold=high_conf_threshold
+    )
 
 
 def _to_binary(tile: Image.Image) -> Image.Image:
@@ -338,6 +352,74 @@ def extract_num_words(
     return None
 
 
+async def _process_tile(
+    image: Image.Image,
+    r: int,
+    c: int,
+    tile_size_px: int,
+    origin_x_px: int,
+    origin_y_px: int,
+) -> str:
+    """Process a single tile: crop, OCR, and apply heuristics."""
+    left = origin_x_px + c * tile_size_px
+    top = origin_y_px + r * tile_size_px
+    right = left + tile_size_px
+    bottom = top + tile_size_px
+    tile = image.crop((left, top, right, bottom))
+    bin_img = _to_binary(tile)
+    holes = _count_holes(bin_img)
+    letter = await _ocr_letter(tile)
+    # Disambiguate B vs P using hole count
+    if letter in {"B", "P"}:
+        letter = "B" if holes >= 2 else "P"
+    elif not letter:
+        # Rescue uncertain cases
+        if _looks_like_I(bin_img):
+            letter = "I"
+    return letter
+
+
+async def extract_grid_async(
+    image: Image.Image,
+    *,
+    rows: int = 8,
+    cols: int = 6,
+    tile_size: float = 0.0665,
+    origin_x: float = 0.0274,
+    origin_y: float = 0.3521,
+) -> list[list[str]]:
+    """Extracts a grid of characters from an iPhone screenshot using async/await.
+
+    All spatial parameters are relative to image height:
+    - tile_size: size of each tile (default ~0.0665)
+    - origin_x: left edge of grid (default ~0.0274)
+    - origin_y: top edge of grid, where 0.0=top and 1.0=bottom (default ~0.3521)
+
+    Other devices may need adjustments to these parameters.
+    """
+    img_width, img_height = image.size
+    tile_size_px = int(tile_size * img_height)
+    origin_x_px = int(origin_x * img_height)
+    origin_y_px = int(origin_y * img_height)
+
+    # Process all tiles concurrently
+    tasks = []
+    for r in range(rows):
+        for c in range(cols):
+            task = _process_tile(image, r, c, tile_size_px, origin_x_px, origin_y_px)
+            tasks.append((r, c, task))
+
+    # Gather all results
+    results = await asyncio.gather(*[task for _, _, task in tasks])
+
+    # Reconstruct grid from results
+    grid: list[list[str]] = [[""] * cols for _ in range(rows)]
+    for (r, c, _), letter in zip(tasks, results):
+        grid[r][c] = letter
+
+    return grid
+
+
 def extract_grid(
     image: Image.Image,
     *,
@@ -355,34 +437,19 @@ def extract_grid(
     - origin_y: top edge of grid, where 0.0=top and 1.0=bottom (default ~0.3521)
 
     Other devices may need adjustments to these parameters.
-    """
-    img_width, img_height = image.size
-    tile_size_px = int(tile_size * img_height)
-    origin_x_px = int(origin_x * img_height)
-    origin_y_px = int(origin_y * img_height)
 
-    grid: list[list[str]] = []
-    for r in range(rows):
-        row_letters: list[str] = []
-        for c in range(cols):
-            left = origin_x_px + c * tile_size_px
-            top = origin_y_px + r * tile_size_px
-            right = left + tile_size_px
-            bottom = top + tile_size_px
-            tile = image.crop((left, top, right, bottom))
-            bin_img = _to_binary(tile)
-            holes = _count_holes(bin_img)
-            letter = _ocr_letter(tile)
-            # Disambiguate B vs P using hole count
-            if letter in {"B", "P"}:
-                letter = "B" if holes >= 2 else "P"
-            elif not letter:
-                # Rescue uncertain cases
-                if _looks_like_I(bin_img):
-                    letter = "I"
-            row_letters.append(letter)
-        grid.append(row_letters)
-    return grid
+    This is a synchronous wrapper around extract_grid_async.
+    """
+    return asyncio.run(
+        extract_grid_async(
+            image,
+            rows=rows,
+            cols=cols,
+            tile_size=tile_size,
+            origin_x=origin_x,
+            origin_y=origin_y,
+        )
+    )
 
 
 def load_image(image_path: str | Path) -> Image.Image:
