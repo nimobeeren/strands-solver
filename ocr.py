@@ -285,6 +285,59 @@ def extract_theme(
     return theme_text
 
 
+def extract_num_words(
+    image: Image.Image,
+    *,
+    num_words_top_left_x: float = 0.147,
+    num_words_top_left_y: float = 0.92,
+    num_words_bottom_right_x: float = 0.920,
+    num_words_bottom_right_y: float = 0.959,
+) -> int | None:
+    """Extracts the number of theme words from text like '0 of 7 theme words found.'
+
+    All spatial parameters are relative to image height:
+    - num_words_top_left_x: left edge of region (default ~0.147)
+    - num_words_top_left_y: top edge of region (default ~0.92)
+    - num_words_bottom_right_x: right edge of region (default ~0.920)
+    - num_words_bottom_right_y: bottom edge of region (default ~0.959)
+
+    Returns the number N from "0 of N theme words found." or None if not found.
+    """
+    _maybe_set_tesseract_path()
+
+    img_width, img_height = image.size
+    top_left_x_px = int(num_words_top_left_x * img_height)
+    top_left_y_px = int(num_words_top_left_y * img_height)
+    bottom_right_x_px = int(num_words_bottom_right_x * img_height)
+    bottom_right_y_px = int(num_words_bottom_right_y * img_height)
+
+    # Crop the region
+    num_words_region = image.crop(
+        (top_left_x_px, top_left_y_px, bottom_right_x_px, bottom_right_y_px)
+    )
+
+    # Preprocess for better OCR results
+    num_words_region = ImageOps.grayscale(num_words_region)
+    num_words_region = ImageEnhance.Contrast(num_words_region).enhance(2.0)
+    num_words_region = ImageOps.autocontrast(num_words_region, cutoff=0)
+    num_words_region = num_words_region.resize(
+        (num_words_region.width * 2, num_words_region.height * 2),
+        Image.BICUBIC,  # pyright: ignore[reportAttributeAccessIssue]
+    )
+
+    # Use PSM 7 for single line text
+    config = "--psm 7"
+    text = pytesseract.image_to_string(num_words_region, config=config).strip()
+
+    # Parse "0 of N theme words found." to extract N
+    import re
+
+    match = re.search(r"of\s+(\d+)\s+theme", text, re.IGNORECASE)
+    if match:
+        return int(match.group(1))
+    return None
+
+
 def extract_grid(
     image: Image.Image,
     *,
@@ -346,7 +399,11 @@ def load_image(image_path: str | Path) -> Image.Image:
 
 
 def save_grid_to_json(
-    grid: Sequence[Sequence[str]], json_path: str | Path, *, theme: str | None = None
+    grid: Sequence[Sequence[str]],
+    json_path: str | Path,
+    *,
+    theme: str | None = None,
+    num_words: int | None = None,
 ) -> None:
     """Save a 2D grid of letters to a JSON file with basic validation.
 
@@ -354,6 +411,7 @@ def save_grid_to_json(
     - Grid must be non-empty and rectangular (all rows same length)
     - Each cell must be a single uppercase A-Z letter or empty string
     - Theme (if provided) is saved as a string field
+    - num_words (if provided) is saved as an integer field
     """
     # Basic structure checks
     if not grid or not grid[0]:
@@ -387,7 +445,12 @@ def save_grid_to_json(
                 f.write("    " + row_json + ",\n")
             else:
                 f.write("    " + row_json + "\n")
-        f.write("  ]\n")
+        f.write("  ]")
+        if num_words is not None:
+            f.write(",\n")
+            f.write(f'  "numWords": {num_words}\n')
+        else:
+            f.write("\n")
         f.write("}\n")
 
 
@@ -472,6 +535,7 @@ def process_image_to_json(
     origin_x: float = 0.0274,
     origin_y: float = 0.3521,
     extract_theme_flag: bool = True,
+    extract_num_words_flag: bool = True,
 ) -> None:
     """High-level helper: load image, extract grid, save as JSON.
 
@@ -483,6 +547,10 @@ def process_image_to_json(
     if extract_theme_flag:
         theme = extract_theme(image)
 
+    num_words = None
+    if extract_num_words_flag:
+        num_words = extract_num_words(image)
+
     grid = extract_grid(
         image,
         rows=rows,
@@ -491,7 +559,7 @@ def process_image_to_json(
         origin_x=origin_x,
         origin_y=origin_y,
     )
-    save_grid_to_json(grid, json_path, theme=theme)
+    save_grid_to_json(grid, json_path, theme=theme, num_words=num_words)
 
 
 def _cli_parse_args(argv: list[str]) -> argparse.Namespace:

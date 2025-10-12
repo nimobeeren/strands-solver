@@ -22,3 +22,9 @@ def test_extract_theme():
     image = Image.open("./puzzles/2025-09-14.jpeg")
     result = ocr.extract_theme(image)
     assert result == "Hurry up!"
+
+
+def test_extract_num_words():
+    image = Image.open("./puzzles/2025-09-14.jpeg")
+    result = ocr.extract_num_words(image)
+    assert result == 7
