@@ -37,19 +37,16 @@ class Solver:
         covers = self.coverer.cover(words)
         logger.info(f"Found {len(covers)} covers")
 
-        # Find covers which contain a single spangram
+        # Find covers which contain at least one spangram
         solutions = set()
         for cover in covers:
-            num_spangrams = len(
-                [
-                    strand
-                    for strand in cover
-                    if strand.is_spangram(self.num_rows, self.num_cols)
-                ]
-            )
-            if num_spangrams == 1:
+            if any(
+                strand
+                for strand in cover
+                if strand.is_spangram(self.num_rows, self.num_cols)
+            ):
                 solutions.add(cover)
-        logger.info(f"Found {len(solutions)} covers with a single spangram")
+        logger.info(f"Found {len(solutions)} covers with a spangram")
 
         return solutions
 

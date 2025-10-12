@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import shutil
 from pathlib import Path
@@ -7,7 +8,6 @@ from pprint import pformat
 from coverer import Coverer
 from draw import draw
 from finder import Finder
-from ocr import load_grid_from_json
 from solver import Solver
 
 logging.basicConfig(
@@ -19,13 +19,21 @@ logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("grid", type=str)
+    parser.add_argument(
+        "puzzle", type=str, help="Path to a JSON file containing a puzzle"
+    )
     args = parser.parse_args()
 
-    grid = load_grid_from_json(args.grid)
+    with open(args.puzzle, "r") as f:
+        puzzle = json.load(f)
+        theme = puzzle["theme"]
+        grid = puzzle["grid"]
+        num_words = puzzle["num_words"]
 
     logging.info("Solving puzzle:\n")
+    print(f"Theme: {theme}\n")
     draw(grid)
+    print(f"\nNumber of words: {num_words}")
     print()
 
     finder = Finder(grid)
@@ -47,7 +55,7 @@ if __name__ == "__main__":
             shutil.rmtree(output_dir)
         output_dir.mkdir()
 
-        puzzle_name = Path(args.grid).stem
+        puzzle_name = Path(args.puzzle).stem
 
         for i, solution in enumerate(solutions):
             output_path = output_dir / f"{puzzle_name}.solution.{i}.txt"
