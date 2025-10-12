@@ -515,81 +515,10 @@ def save_grid_to_json(
         f.write("  ]")
         if num_words is not None:
             f.write(",\n")
-            f.write(f'  "numWords": {num_words}\n')
+            f.write(f'  "num_words": {num_words}\n')
         else:
             f.write("\n")
         f.write("}\n")
-
-
-def load_grid_from_json(
-    json_path: str | Path,
-    *,
-    expected_rows: int | None = None,
-    expected_cols: int | None = None,
-    allow_blank: bool = True,
-) -> list[list[str]]:
-    """Load a grid from JSON and return a 2D list of strings with validation.
-
-    - Validates rectangular shape
-    - Optionally validates row/column count
-    - Validates each cell is a single A-Z letter; blanks optionally allowed
-    """
-    path = Path(json_path)
-    if not path.exists():
-        raise FileNotFoundError(f"JSON not found: {path}")
-
-    with path.open("r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    if not isinstance(data, dict) or "grid" not in data:
-        raise ValueError("JSON must contain a 'grid' key")
-
-    raw_grid = data["grid"]
-    if not isinstance(raw_grid, list):
-        raise ValueError("grid data must be a list")
-
-    rows: list[list[str]] = []
-    for raw_row in raw_grid:
-        if not isinstance(raw_row, list):
-            raise ValueError("Each row in grid must be a list")
-        # Normalize each cell: strip and uppercase
-        normalized = [str(cell).strip().upper() for cell in raw_row]
-        rows.append(normalized)
-
-    if not rows:
-        raise ValueError("JSON grid is empty; expected at least one row")
-
-    # Rectangular validation
-    num_cols = len(rows[0])
-    for r_idx, row in enumerate(rows):
-        if len(row) != num_cols:
-            raise ValueError(
-                f"JSON grid is not rectangular: row 0 has {num_cols} cols, row {r_idx} has {len(row)}"
-            )
-
-    if expected_rows is not None and len(rows) != expected_rows:
-        raise ValueError(
-            f"Unexpected row count: got {len(rows)}, expected {expected_rows}"
-        )
-    if expected_cols is not None and num_cols != expected_cols:
-        raise ValueError(
-            f"Unexpected column count: got {num_cols}, expected {expected_cols}"
-        )
-
-    # Cell validation
-    valid_letters = {chr(ord("A") + i) for i in range(26)}
-    for r_idx, row in enumerate(rows):
-        for c_idx, cell in enumerate(row):
-            if cell == "":
-                if not allow_blank:
-                    raise ValueError(f"Blank cell not allowed at ({r_idx},{c_idx})")
-                continue
-            if cell not in valid_letters:
-                raise ValueError(
-                    f"Invalid cell at ({r_idx},{c_idx}): '{cell}'. Must be A-Z."
-                )
-
-    return rows
 
 
 def process_image_to_json(
@@ -659,9 +588,6 @@ def _cli_parse_args(argv: list[str]) -> argparse.Namespace:
         default=0.3521,
         help="Top origin relative to image height, 0.0=top 1.0=bottom (default: 0.3521)",
     )
-    parser.add_argument(
-        "--print", action="store_true", help="Print the extracted grid to stdout"
-    )
     return parser.parse_args(argv)
 
 
@@ -677,12 +603,6 @@ def cli_main(argv: list[str] | None = None) -> int:
             origin_x=args.origin_x,
             origin_y=args.origin_y,
         )
-        if args.print:
-            grid = load_grid_from_json(
-                args.json, expected_rows=args.rows, expected_cols=args.cols
-            )
-            for row in grid:
-                logger.info(",".join(row))
         return 0
     except Exception as e:
         logger.error(f"Error: {e}")
