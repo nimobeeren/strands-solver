@@ -1,4 +1,16 @@
 from dataclasses import dataclass
+from enum import Enum
+
+
+class Direction(Enum):
+    RIGHT = (1, 0)
+    DOWN_RIGHT = (1, 1)
+    DOWN = (0, 1)
+    DOWN_LEFT = (-1, 1)
+    LEFT = (-1, 0)
+    UP_LEFT = (-1, -1)
+    UP = (0, -1)
+    UP_RIGHT = (1, -1)
 
 
 @dataclass(frozen=True)
@@ -32,3 +44,24 @@ class Strand:
             if y == grid_rows - 1:
                 touches_bottom = True
         return (touches_left and touches_right) or (touches_top and touches_bottom)
+
+    def can_concatenate(self, other: "Strand") -> bool:
+        """Checks whether the last position of this strand is adjacent to the first
+        position of another strand."""
+        for direction in Direction:
+            dx, dy = direction.value
+            if (
+                self.positions[-1][0] + dx == other.positions[0][0]
+                and self.positions[-1][1] + dy == other.positions[0][1]
+            ):
+                return True
+        return False
+
+    def concatenate(self, other: "Strand") -> "Strand":
+        """Creates a new strand by concatenating this strand with another strand."""
+        if not self.can_concatenate(other):
+            raise ValueError("Strands cannot be concatenated")
+        return Strand(
+            positions=self.positions + other.positions,
+            string=self.string + other.string,
+        )

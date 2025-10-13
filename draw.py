@@ -213,7 +213,7 @@ def _render_grid(data: list[list[RenderCell]]) -> None:
                 if cell.covered and cell.strand_indices:
                     # Use the color for this strand
                     color = colors[cell.strand_indices[0] % len(colors)]
-                    style = f"bold {color} on {color}"
+                    style = f"bold on {color}"
                 else:
                     style = "white"
             else:

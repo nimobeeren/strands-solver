@@ -62,4 +62,4 @@ if __name__ == "__main__":
             with open(output_path, "w") as f:
                 f.write(pformat(solution))
 
-        logging.info(f"Solutions written to '{output_dir}' directory")
+        logging.info(f"All {len(solutions)} solutions written to '{output_dir}' directory")

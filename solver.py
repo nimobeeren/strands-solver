@@ -9,7 +9,12 @@ logger = logging.getLogger(__name__)
 
 class Solver:
     def __init__(
-        self, grid: list[list[str]], *, finder: Finder, coverer: Coverer, num_words: int | None = None
+        self,
+        grid: list[list[str]],
+        *,
+        finder: Finder,
+        coverer: Coverer,
+        num_words: int | None = None,
     ):
         self.grid = grid
         self.finder = finder
@@ -71,9 +76,7 @@ class Solver:
         could be formed using different sets of positions.
 
         If a word appears multiple times using the exact same set of grid positions
-        (just traced in different orders), we keep all instances and let the covering
-        algorithm choose which path to use.
-        """
+        (just traced in different orders), we keep only one."""
         # Group strands by their word string
         words_by_string: dict[str, list[Strand]] = {}
         for strand in words:
