@@ -45,11 +45,38 @@ class Solver:
         covers = self.coverer.cover(words)
         logger.info(f"Found {len(covers)} covers")
 
+        if self.num_words is None:
+            raise NotImplementedError()  # TODO
+
         # Find covers which have the correct number of words
         covers_with_correct_num_words = set()
         for cover in covers:
-            if self.num_words is None or len(cover) == self.num_words:
+            # If cover doesn't have enough words, skip it
+            if len(cover) < self.num_words:
+                continue
+            # If a cover has exactly enough words, it's trivially correct
+            elif len(cover) == self.num_words:
                 covers_with_correct_num_words.add(cover)
+            # If a cover has too many words, we may be able to reduce the number by
+            # concatenating some words
+            # TODO: figure out why we can't solve 2025-09-15 yet
+            elif len(cover) == self.num_words + 1:
+                pairs: set[tuple[Strand, Strand]] = set()
+                for word1 in cover:
+                    for word2 in cover - {word1}:
+                        pairs.add((word1, word2))
+
+                for word1, word2 in pairs:
+                    if word1.can_concatenate(word2):
+                        covers_with_correct_num_words.add(
+                            frozenset(
+                                (cover - {word1, word2}) | {word1.concatenate(word2)}
+                            )
+                        )
+            else:
+                # TODO
+                continue
+
         logger.info(
             f"Found {len(covers_with_correct_num_words)} covers with the correct number of words"
         )

@@ -49,38 +49,100 @@ def test_solve_single_spangram():
     solver = Solver(grid, finder=finder, coverer=coverer)
     solutions = solver.solve()
 
-    assert len(solutions) == 1
-
-    expected = frozenset(
-        [
-            Strand(
-                positions=(
-                    (0, 0),
-                    (1, 0),
-                    (2, 0),
-                    (3, 0),
-                    (4, 0),
-                    (4, 1),
-                    (5, 1),
-                    (6, 1),
-                    (7, 1),
-                    (8, 1),
+    expected = {
+        frozenset(
+            [
+                Strand(
+                    positions=(
+                        (0, 0),
+                        (1, 0),
+                        (2, 0),
+                        (3, 0),
+                        (4, 0),
+                        (4, 1),
+                        (5, 1),
+                        (6, 1),
+                        (7, 1),
+                        (8, 1),
+                    ),
+                    string="WATERMELON",
                 ),
-                string="WATERMELON",
-            ),
-            Strand(
-                positions=((5, 0), (6, 0), (7, 0), (8, 0)),
-                string="TOAD",
-            ),
-            Strand(
-                positions=((0, 1), (1, 1), (2, 1), (3, 1)),
-                string="FROG",
-            ),
-        ]
-    )
-    # Get the single solution from the set
-    (solution,) = solutions
-    assert solution == expected
+                Strand(
+                    positions=((5, 0), (6, 0), (7, 0), (8, 0)),
+                    string="TOAD",
+                ),
+                Strand(
+                    positions=((0, 1), (1, 1), (2, 1), (3, 1)),
+                    string="FROG",
+                ),
+            ]
+        )
+    }
+    assert solutions == expected
+
+
+def test_solve_concatenated_spangram():
+    grid = [
+        ["A", "B", "C", "D", "E", "F", "G", "H"],
+        ["I", "J", "K", "L", "M", "N", "O", "P"],
+        ["Q", "R", "S", "T", "U", "V", "W", "X"],
+    ]
+
+    # There is only one solution with 3 words:
+    # ABCDEFGH + IJKLMNOP + QRSTUVWX
+    # and it requires concatenating IJKL and MNOP to form the spangram
+
+    finder = Finder(grid, dictionary={"IJKL", "MNOP", "ABCDEFGH", "QRSTUVWX"})
+    coverer = Coverer(grid)
+    solver = Solver(grid, finder=finder, coverer=coverer, num_words=3)
+    solutions = solver.solve()
+
+    expected = {
+        frozenset(
+            [
+                Strand(
+                    positions=(
+                        (0, 0),
+                        (1, 0),
+                        (2, 0),
+                        (3, 0),
+                        (4, 0),
+                        (5, 0),
+                        (6, 0),
+                        (7, 0),
+                    ),
+                    string="ABCDEFGH",
+                ),
+                Strand(
+                    positions=(
+                        (0, 1),
+                        (1, 1),
+                        (2, 1),
+                        (3, 1),
+                        (4, 1),
+                        (5, 1),
+                        (6, 1),
+                        (7, 1),
+                    ),
+                    string="IJKLMNOP",
+                ),
+                Strand(
+                    positions=(
+                        (0, 2),
+                        (1, 2),
+                        (2, 2),
+                        (3, 2),
+                        (4, 2),
+                        (5, 2),
+                        (6, 2),
+                        (7, 2),
+                    ),
+                    string="QRSTUVWX",
+                ),
+            ]
+        )
+    }
+    assert solutions == expected
 
 
 def test_filter_duplicate_words():

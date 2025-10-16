@@ -28,18 +28,16 @@ uv run main.py path_to_puzzle.json
 
 ## Limitations
 
-- The solver will only find a solution if the spangram is a single word. In reality, it often consists of multiple concatenated words.
+- The solver will only find a solution if the spangram is a single word or a concatenation of two words which are each 4 letters or longer. In reality, it may consist of more than two. Furthermore, the words in the spangram may be shorter than 4 letters. Finally, the words in the spangram may be words that would only be valid with an apostrophe (like YOURE) which currently aren't found.
 - The dictionary (`dictionary.py`) uses the [ENABLE1](https://rressler.quarto.pub/i_data_sets/data_word_lists.html) word list, which is comprehensive but may occasionally miss some valid words or include uncommon ones. This may cause the solver to fail to find a valid solution.
 - The solver may find multiple solutions but it can't determine which one fits the theme best.
 
 ## Development
 
-### Tests
-
-Run the tests
+### Running the tests
 
 ```bash
 uv run pytest
 ```
 
-The `ocr_test.py` is a bit slow so you if you don't need it you can skip it with `--ignore ocr_test.py`
+The OCR tests are a bit slow so you if you don't need it you can skip it with `--ignore ocr_test.py`
