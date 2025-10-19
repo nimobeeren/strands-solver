@@ -147,6 +147,25 @@ def test_solve_concatenated_spangram():
     assert solutions == expected
 
 
+def test_solve_cant_concatenate_if_not_spangram():
+    """Test that we don't concatenate words if they don't form a spangram."""
+    grid = [
+        list("ABCDEFGHKL"),
+        list("MNOPQRSTJI"),
+    ]
+
+    finder = Finder(grid, dictionary={"ABCD", "EFGH", "IJKL", "MNOPQRST"})
+    coverer = Coverer(grid)
+    solver = Solver(grid, finder=finder, coverer=coverer, num_words=3)
+    solutions = solver.solve()
+
+    # This puzzle is solvable with 4 words: {ABCD, EFGH, IJKL, MNOPQRST}
+    # If it was allowed to concatenate ABCD + EFGH, then it could be solved in 3
+    # But since ABCDEFGH is not a spangram, this is not allowed.
+    # Hence, there are no solutions with 3 words.
+    assert len(solutions) == 0
+
+
 @pytest.mark.skip("Not fixed yet")
 def test_solve_spangram_with_duplicate_word():
     """Edge case where the spangram is a concatenation of words where one word appears
