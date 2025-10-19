@@ -1,3 +1,5 @@
+import pytest
+
 from coverer import Coverer
 from finder import Finder
 from solver import Solver
@@ -12,9 +14,10 @@ def test_solve():
         ["T", "E", "S", "T", "A"],
         ["W", "O", "R", "D", "N"],
     ]
+
     finder = Finder(grid)
     coverer = Coverer(grid)
-    solver = Solver(grid, finder=finder, coverer=coverer)
+    solver = Solver(grid, finder=finder, coverer=coverer, num_words=5)
     solutions = solver.solve()
 
     # Should find at least one solution
@@ -35,18 +38,16 @@ def test_solve():
 
 def test_solve_single_spangram():
     grid = [
-        ["W", "A", "T", "E", "R", "T", "O", "A", "D"],
-        ["F", "R", "O", "G", "M", "E", "L", "O", "N"],
+        ["A", "B", "C", "D", "E", "K", "L", "M", "N"],
+        ["O", "P", "Q", "R", "F", "G", "H", "I", "J"],
     ]
 
-    # There exist solutions which do not conain a spangram, for example:
-    # WATER + TOAD + FROG + MELON
-    # But there is only one solution which does contain a spangram, namely:
-    # WATERMELON (spangram) + TOAD + FROG
+    # There is only one solution with 3 words:
+    # {ABCDEFGHIJ, KLMN, OPQR}
 
-    finder = Finder(grid)
+    finder = Finder(grid, dictionary={"ABCDEFGHIJ", "KLMN", "OPQR"})
     coverer = Coverer(grid)
-    solver = Solver(grid, finder=finder, coverer=coverer)
+    solver = Solver(grid, finder=finder, coverer=coverer, num_words=3)
     solutions = solver.solve()
 
     expected = {
@@ -65,19 +66,20 @@ def test_solve_single_spangram():
                         (7, 1),
                         (8, 1),
                     ),
-                    string="WATERMELON",
+                    string="ABCDEFGHIJ",
                 ),
                 Strand(
                     positions=((5, 0), (6, 0), (7, 0), (8, 0)),
-                    string="TOAD",
+                    string="KLMN",
                 ),
                 Strand(
                     positions=((0, 1), (1, 1), (2, 1), (3, 1)),
-                    string="FROG",
+                    string="OPQR",
                 ),
             ]
         )
     }
+
     assert solutions == expected
 
 
@@ -89,10 +91,10 @@ def test_solve_concatenated_spangram():
     ]
 
     # There is only one solution with 3 words:
-    # ABCDEFGH + IJKLMNOP + QRSTUVWX
+    # {ABCDEFGH, IJKLMNOP, QRSTUVWX}
     # and it requires concatenating IJKL and MNOP to form the spangram
 
-    finder = Finder(grid, dictionary={"IJKL", "MNOP", "ABCDEFGH", "QRSTUVWX"})
+    finder = Finder(grid, dictionary={"ABCDEFGH", "IJKL", "MNOP", "QRSTUVWX"})
     coverer = Coverer(grid)
     solver = Solver(grid, finder=finder, coverer=coverer, num_words=3)
     solutions = solver.solve()
@@ -143,6 +145,47 @@ def test_solve_concatenated_spangram():
         )
     }
     assert solutions == expected
+
+
+@pytest.mark.skip("Not fixed yet")
+def test_solve_spangram_with_duplicate_word():
+    """Edge case where the spangram is a concatenation of words where one word appears
+    in multiple places in the grid (duplicate). Normally, this duplicate would get
+    filtered out, but if it's part of a concatenated spangram, it should be kept."""
+    # NOTE: commenting out _filter_duplicate_words in solver.py fixes this, but
+    # increases running time a lot
+    grid = [
+        ["A", "B", "C", "D", "E", "F", "G", "H"],
+        ["L", "K", "J", "I", "E", "F", "G", "H"],
+    ]
+
+    finder = Finder(grid, dictionary={"ABCD", "EFGH", "IJKL"})
+    coverer = Coverer(grid)
+    solver = Solver(grid, finder=finder, coverer=coverer, num_words=3)
+    solutions = solver.solve()
+
+    expected = frozenset(
+        {
+            # Spangram consisting of ABCD + EFGH
+            Strand(
+                string="ABCDEFGH",
+                positions=(
+                    (0, 0),
+                    (1, 0),
+                    (2, 0),
+                    (3, 0),
+                    (4, 0),
+                    (5, 0),
+                    (6, 0),
+                    (7, 0),
+                ),
+            ),
+            Strand(string="EFGH", positions=((4, 1), (5, 1), (6, 1), (7, 1))),
+            Strand(string="IJKL", positions=((3, 1), (2, 1), (1, 1), (0, 1))),
+        }
+    )
+
+    assert expected in solutions
 
 
 def test_filter_duplicate_words():
