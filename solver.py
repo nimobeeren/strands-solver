@@ -35,6 +35,17 @@ class Solver:
         words = self.finder.find_all_words()
         logger.info(f"Found {len(words)} words")
 
+        # NOTE: this increases len(words) so much that solving becomes infeasible with
+        # current approach
+        logger.info("Finding concatenated spangram candidates")
+        concatenated_spangram_candidates = self.get_concatenated_spangram_candidates(
+            words
+        )
+        words |= concatenated_spangram_candidates
+        logger.info(
+            f"Found {len(concatenated_spangram_candidates)} concatenated spangram candidates"
+        )
+
         # Filter out words that appear in different places
         # The words in the final solution never appear in more than one place in
         # the grid
@@ -93,6 +104,22 @@ class Solver:
         logger.info(f"Found {len(covers_with_spangram)} covers with a spangram")
 
         return covers_with_spangram
+
+    def get_concatenated_spangram_candidates(self, words: set[Strand]):
+        candidates: set[Strand] = set()
+
+        pairs: set[tuple[Strand, Strand]] = set()
+        for word1 in words:
+            for word2 in words - {word1}:
+                pairs.add((word1, word2))
+
+        for word1, word2 in pairs:
+            if word1.can_concatenate(word2):
+                concat = word1.concatenate(word2)
+                if concat.is_spangram(self.num_rows, self.num_cols):
+                    candidates.add(concat)
+
+        return candidates
 
     @staticmethod
     def _filter_duplicate_words(words: set[Strand]) -> set[Strand]:
