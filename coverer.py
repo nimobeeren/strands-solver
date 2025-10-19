@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 
 class Coverer:
-    """Given a grid and a list of strands, tries to find ways to cover every cell of
+    """Given a grid and a set of strands, tries to find ways to cover every cell of
     the grid with a subset of the strands without overlapping."""
 
     def __init__(self, grid: list[list[str]]):

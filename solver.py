@@ -68,11 +68,11 @@ class Solver:
 
                 for word1, word2 in pairs:
                     if word1.can_concatenate(word2):
-                        covers_with_correct_num_words.add(
-                            frozenset(
-                                (cover - {word1, word2}) | {word1.concatenate(word2)}
+                        concatenated = word1.concatenate(word2)
+                        if concatenated.is_spangram(self.num_rows, self.num_cols):
+                            covers_with_correct_num_words.add(
+                                frozenset((cover - {word1, word2}) | {concatenated})
                             )
-                        )
             else:
                 # TODO
                 continue
