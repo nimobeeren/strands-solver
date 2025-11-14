@@ -59,7 +59,6 @@ class Solver:
                 covers_with_correct_num_words.add(cover)
             # If a cover has too many words, we may be able to reduce the number by
             # concatenating some words
-            # TODO: figure out why we can't solve 2025-09-15 yet
             elif len(cover) == self.num_words + 1:
                 pairs: set[tuple[Strand, Strand]] = set()
                 for word1 in cover:
@@ -74,7 +73,8 @@ class Solver:
                                 frozenset((cover - {word1, word2}) | {concatenated})
                             )
             else:
-                # TODO
+                # TODO generalize to cases where cover has more than `num_words + 1`
+                # words, requiring multiple concatenations
                 continue
 
         logger.info(
