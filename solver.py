@@ -49,7 +49,7 @@ class Solver:
             raise NotImplementedError()  # TODO
 
         # Find covers which have the correct number of words
-        covers_with_correct_num_words = set()
+        covers_with_correct_num_words = set[frozenset[Strand]]()
         for cover in covers:
             # If cover doesn't have enough words, skip it
             if len(cover) < self.num_words:
@@ -82,7 +82,7 @@ class Solver:
         )
 
         # Find covers which contain at least one spangram
-        covers_with_spangram = set()
+        covers_with_spangram = set[frozenset[Strand]]()
         for cover in covers_with_correct_num_words:
             if any(
                 strand
