@@ -77,3 +77,51 @@ def test_concatenate():
     # Should raise an error if the strands cannot be concatenated
     with pytest.raises(ValueError):
         strand2.concatenate(strand1)
+
+
+def test_no_self_crossing_straight_line():
+    """A straight line should not have a self-crossing."""
+    strand = Strand(positions=((0, 0), (1, 0), (2, 0), (3, 0)), string="ABCD")
+    assert not strand.has_self_crossing()
+
+
+def test_no_self_crossing_l_shape():
+    """An L-shape should not have a self-crossing."""
+    strand = Strand(positions=((0, 0), (1, 0), (2, 0), (2, 1)), string="ABCD")
+    assert not strand.has_self_crossing()
+
+
+def test_self_crossing_x_pattern():
+    """An X pattern should be detected as having a self-crossing."""
+    # Grid: C B
+    #       A D
+    # Path: A(0,1) -> B(1,0) -> C(0,0) -> D(1,1)
+    strand = Strand(positions=((0, 1), (1, 0), (0, 0), (1, 1)), string="ABCD")
+    assert strand.has_self_crossing()
+
+
+def test_no_crossing_between_non_overlapping_strands():
+    """Two parallel horizontal strands should not cross each other."""
+    strand1 = Strand(positions=((0, 0), (1, 0), (2, 0)), string="ABC")
+    strand2 = Strand(positions=((0, 1), (1, 1), (2, 1)), string="DEF")
+    assert not strand1.crosses(strand2)
+    assert not strand2.crosses(strand1)
+
+
+def test_crossing_between_strands():
+    """Two strands that form an X pattern should cross each other."""
+    # Grid: C B
+    #       A D
+    # Strand1: A(0,1) -> B(1,0)
+    # Strand2: C(0,0) -> D(1,1)
+    strand1 = Strand(positions=((0, 1), (1, 0)), string="AB")
+    strand2 = Strand(positions=((0, 0), (1, 1)), string="CD")
+    assert strand1.crosses(strand2)
+    assert strand2.crosses(strand1)
+
+
+def test_no_crossing_when_strands_share_endpoint():
+    """Strands that share an endpoint should not count as crossing."""
+    strand1 = Strand(positions=((0, 0), (1, 0), (2, 0)), string="ABC")
+    strand2 = Strand(positions=((2, 0), (2, 1), (2, 2)), string="DEF")
+    assert not strand1.crosses(strand2)

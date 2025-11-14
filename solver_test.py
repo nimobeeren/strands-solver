@@ -207,6 +207,40 @@ def test_solve_spangram_with_duplicate_word():
     assert expected in solutions
 
 
+def test_solve_no_solutions_crossing():
+    """Test that we don't find solutions where a strand crosses another strand."""
+    # fmt: off
+    grid = [
+        ["C", "B"],
+        ["A", "D"]
+    ]
+    # fmt: on
+
+    finder = Finder(grid, dictionary={"AB", "CD"}, min_length=2)
+    coverer = Coverer(grid)
+    solver = Solver(grid, finder=finder, coverer=coverer, num_words=2)
+    solutions = solver.solve()
+
+    assert len(solutions) == 0
+
+
+def test_solve_no_solutions_self_crossing():
+    """Test that we don't find solutions where a strand crosses itself."""
+    # fmt: off
+    grid = [
+        ["C", "B"],
+        ["A", "D"]
+    ]
+    # fmt: on
+
+    finder = Finder(grid, dictionary={"ABCD"})
+    coverer = Coverer(grid)
+    solver = Solver(grid, finder=finder, coverer=coverer, num_words=1)
+    solutions = solver.solve()
+
+    assert len(solutions) == 0
+
+
 def test_filter_duplicate_words():
     """Test that words with multiple instances using different position sets are filtered out."""
     words = {

@@ -11,11 +11,16 @@ class Finder:
     """Finds strands forming words given a grid and an optional dictionary."""
 
     def __init__(
-        self, grid: list[list[str]], *, dictionary: set[str] | None = None
+        self,
+        grid: list[list[str]],
+        *,
+        dictionary: set[str] | None = None,
+        min_length: int = 4,
     ) -> None:
         self.grid = grid
         self.num_rows = len(grid)
         self.num_cols = len(grid[0])
+        self.min_length = min_length
 
         logger.info("Loading dictionary")
         if dictionary is None:
@@ -24,12 +29,12 @@ class Finder:
         self.sorted_dictionary = sorted(dictionary)
         logger.info(f"Loaded {len(dictionary)} words")
 
-    def find_all_words(self, min_length=4) -> set[Strand]:
+    def find_all_words(self) -> set[Strand]:
         """Finds all strands forming words in the grid."""
         words: set[Strand] = set()
         for x in range(self.num_cols):
             for y in range(self.num_rows):
-                words |= self.find_words(current_pos=(x, y), min_length=min_length)
+                words |= self.find_words(current_pos=(x, y))
         return words
 
     def find_words(
@@ -37,7 +42,6 @@ class Finder:
         *,
         current_pos: tuple[int, int],
         prefix: Strand = Strand(positions=(), string=""),
-        min_length=4,
     ) -> set[Strand]:
         """Finds strands forming words in the grid starting with the `prefix` strand and
         continuing at `current_pos` without overlapping with the `prefix` strand."""
@@ -50,10 +54,15 @@ class Finder:
             string=prefix.string + self.grid[y][x],
         )
 
+        # Prune if not a word prefix
         if not self.is_word_prefix(candidate.string):
             return words
 
-        if len(candidate.string) >= min_length and self.is_word(candidate.string):
+        # Prune if the candidate strand crosses itself
+        if candidate.has_self_crossing():
+            return words
+
+        if len(candidate.string) >= self.min_length and self.is_word(candidate.string):
             logger.debug(f"Found word: {candidate.string}")
             words.add(candidate)
 
@@ -74,7 +83,6 @@ class Finder:
             words |= self.find_words(
                 current_pos=(next_x, next_y),
                 prefix=candidate,
-                min_length=min_length,
             )
 
         return words

@@ -20,10 +20,20 @@ class Coverer:
         # Convert to list for indexing
         strands_list = list(strands)
         self.strand_masks, self.cell_to_strand_idx = self._build_indices(strands_list)
+
+        # Find all covers without crossing checks (faster recursion)
         results = self._cover_rec()
 
         # Map indices back to Strands
-        return {frozenset(strands_list[i] for i in result) for result in results}
+        all_covers = {frozenset(strands_list[i] for i in result) for result in results}
+
+        # Remove covers with crossing strands
+        valid_covers = set()
+        for cover in all_covers:
+            if not self._cover_has_crossing(cover):
+                valid_covers.add(cover)
+
+        return valid_covers
 
     def _cover_rec(self, *, covered_mask: int = 0) -> list[list[int]]:
         """Recursive backtracking search that covers all grid cells exactly once using
@@ -81,6 +91,15 @@ class Coverer:
                 solutions.append([w_idx] + sub)
 
         return solutions
+
+    def _cover_has_crossing(self, cover: frozenset[Strand]) -> bool:
+        """Checks if any strands in the cover cross each other."""
+        strands = list(cover)
+        for i in range(len(strands)):
+            for j in range(i + 1, len(strands)):
+                if strands[i].crosses(strands[j]):
+                    return True
+        return False
 
     def _build_indices(self, strands: list[Strand]):
         """Computes:

@@ -65,3 +65,92 @@ class Strand:
             positions=self.positions + other.positions,
             string=self.string + other.string,
         )
+
+    def has_self_crossing(self) -> bool:
+        """Checks whether the strand crosses itself.
+
+        A strand crosses itself if any of its line segments intersect with any
+        other non-adjacent line segment.
+        """
+        if len(self.positions) < 4:
+            # Need at least 4 positions to have a self-crossing
+            return False
+
+        # Check each pair of non-adjacent segments
+        for i in range(len(self.positions) - 1):
+            for j in range(i + 2, len(self.positions) - 1):
+                # Skip adjacent segments (they share an endpoint)
+                if j == i + 1:
+                    continue
+
+                seg1 = (self.positions[i], self.positions[i + 1])
+                seg2 = (self.positions[j], self.positions[j + 1])
+
+                if _segments_intersect(seg1, seg2):
+                    return True
+
+        return False
+
+    def crosses(self, other: "Strand") -> bool:
+        """Checks whether this strand crosses another strand.
+
+        Two strands cross if any of their line segments intersect.
+        """
+        for i in range(len(self.positions) - 1):
+            for j in range(len(other.positions) - 1):
+                seg1 = (self.positions[i], self.positions[i + 1])
+                seg2 = (other.positions[j], other.positions[j + 1])
+
+                if _segments_intersect(seg1, seg2):
+                    return True
+
+        return False
+
+
+def _segments_intersect(
+    seg1: tuple[tuple[int, int], tuple[int, int]],
+    seg2: tuple[tuple[int, int], tuple[int, int]],
+) -> bool:
+    """Checks whether two line segments intersect.
+
+    Two segments intersect if they cross each other (not just touch at endpoints).
+    Uses the orientation method to determine if segments intersect.
+    """
+    p1, p2 = seg1
+    p3, p4 = seg2
+
+    # Segments that share an endpoint don't count as crossing
+    if p1 == p3 or p1 == p4 or p2 == p3 or p2 == p4:
+        return False
+
+    # Check if the segments intersect using the orientation test
+    # Two segments (p1,p2) and (p3,p4) intersect if:
+    # - p1 and p2 are on opposite sides of the line through p3,p4
+    # - AND p3 and p4 are on opposite sides of the line through p1,p2
+
+    o1 = _orientation(p1, p2, p3)
+    o2 = _orientation(p1, p2, p4)
+    o3 = _orientation(p3, p4, p1)
+    o4 = _orientation(p3, p4, p2)
+
+    # General case: segments intersect if orientations differ
+    if o1 != o2 and o3 != o4:
+        return True
+
+    return False
+
+
+def _orientation(p: tuple[int, int], q: tuple[int, int], r: tuple[int, int]) -> int:
+    """Returns the orientation of the ordered triplet (p, q, r).
+
+    Returns:
+        0 if p, q, r are collinear
+        1 if clockwise
+        -1 if counterclockwise
+    """
+    # Calculate the cross product of vectors (q-p) and (r-q)
+    val = (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1])
+
+    if val == 0:
+        return 0  # collinear
+    return 1 if val > 0 else -1  # clockwise or counterclockwise
