@@ -28,7 +28,9 @@ uv run main.py path_to_puzzle.json
 
 ## Limitations
 
-- The solver will only find a solution if the spangram is a single word or a concatenation of words which are each 4 letters or longer. In reality, the words in the spangram may be shorter than 4 letters. Also, the words in the spangram may be words that would only be valid with an apostrophe (like YOURE) which currently aren't found.
+- The solver will only find a solution if the spangram is a single word or a concatenation of words which are each 4 letters or longer. In reality, the words in the spangram may be shorter than 4 letters.
+- The solver will not find solutions where the spangram contains a contraction (like YOURE), which does appear in real solutions.
+- The solver wil not find solutions where the spangram is a concatenation of words and one of those words appears in multiple places in the grid (we call this a duplicate word). This is because we filter out duplicate words since real solutions don't contain these words (unless they are part of the spangram). The 2025-09-15 puzzle is an example of this.
 - The dictionary (`dictionary.py`) uses the [ENABLE1](https://rressler.quarto.pub/i_data_sets/data_word_lists.html) word list, which is comprehensive but may occasionally miss some valid words or include uncommon ones. This may cause the solver to fail to find a valid solution.
 - The solver may find multiple solutions but it can't determine which one fits the theme best.
 
