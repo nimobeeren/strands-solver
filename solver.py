@@ -56,8 +56,8 @@ class Solver:
         logger.info(f"Found {len(covers)} covers")
 
         if self.num_words is not None:
-            covers = self._filter_covers_by_num_words(covers, self.num_words)
-            logger.info(f"After filtering by number of words: {len(covers)} covers")
+            covers = self._try_concatenate_words(covers, self.num_words)
+            logger.info(f"After concaenating words: {len(covers)} covers")
 
         covers = self._filter_covers_by_spangram(covers)
         logger.info(f"After filtering by spangram: {len(covers)} covers")
@@ -103,17 +103,17 @@ class Solver:
 
         return filtered
 
-    def _filter_covers_by_num_words(
-        self, covers: set[frozenset[Strand]], num_words: int | None
+    def _try_concatenate_words(
+        self, covers: set[frozenset[Strand]], num_words: int
     ) -> set[frozenset[Strand]]:
-        """Filter covers to only include those with the correct number of words.
-
-        If a cover has too many words, attempts to reduce the count by concatenating
+        """For covers with too many words, attempts to reduce the count by concatenating
         words that can form a spangram.
-        """
-        if num_words is None:
-            return covers
 
+        Covers with too few words are filtered out.
+
+        Returns a set of covers with the correct number of words, which may or may not
+        contain a (concatenated) spangram.
+        """
         # Find covers which have the correct number of words
         covers_with_correct_num_words = set[frozenset[Strand]]()
         for cover in covers:
