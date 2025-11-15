@@ -1,5 +1,5 @@
 import logging
-from itertools import combinations, permutations
+from itertools import combinations
 
 from common import Strand
 from coverer import Coverer
@@ -133,24 +133,80 @@ class Solver:
                 if num_to_concat > self.spangram_max_words:
                     continue
 
+                # Build adjacency graph: map each word to words that can follow it
+                cover_list = list(cover)
+                adjacency = {}
+                for word in cover_list:
+                    adjacency[word] = [
+                        other
+                        for other in cover_list
+                        if word != other and word.can_concatenate(other)
+                    ]
+
                 # Try all combinations of words that could be concatenated
                 for words_to_concat in combinations(cover, num_to_concat):
-                    # Try all permutations since concatenation order matters
-                    for word_order in permutations(words_to_concat):
-                        # Try to concatenate the words in this order
-                        first_word = word_order[0]
-                        other_words = word_order[1:]
-
-                        if first_word.can_concatenate(*other_words):
-                            concatenated = first_word.concatenate(*other_words)
-                            if concatenated.is_spangram(self.num_rows, self.num_cols):
-                                # Create new cover with concatenated word replacing individual words
-                                new_cover = frozenset(
-                                    (cover - set(words_to_concat)) | {concatenated}
-                                )
-                                covers_with_correct_num_words.add(new_cover)
+                    # Find valid orderings using adjacency graph (instead of all permutations)
+                    for valid_order in self._find_valid_orderings(
+                        words_to_concat, adjacency
+                    ):
+                        concatenated = valid_order[0].concatenate(*valid_order[1:])
+                        if concatenated.is_spangram(self.num_rows, self.num_cols):
+                            # Create new cover with concatenated word replacing individual words
+                            new_cover = frozenset(
+                                (cover - set(words_to_concat)) | {concatenated}
+                            )
+                            covers_with_correct_num_words.add(new_cover)
 
         return covers_with_correct_num_words
+
+    def _find_valid_orderings(
+        self, words: tuple[Strand, ...], adjacency: dict[Strand, list[Strand]]
+    ) -> list[tuple[Strand, ...]]:
+        """Find all valid orderings of words where consecutive words can be concatenated.
+
+        Uses the adjacency graph to only generate orderings where each word can
+        concatenate with the next, avoiding the need to try all permutations.
+        """
+        result = []
+        words_set = set(words)
+
+        # Try starting from each word
+        for start_word in words:
+            # Build chains starting from this word using DFS
+            self._build_chains_recursive(
+                current_chain=[start_word],
+                remaining=words_set - {start_word},
+                adjacency=adjacency,
+                result=result,
+            )
+
+        return result
+
+    def _build_chains_recursive(
+        self,
+        current_chain: list[Strand],
+        remaining: set[Strand],
+        adjacency: dict[Strand, list[Strand]],
+        result: list[tuple[Strand, ...]],
+    ):
+        """Recursively build valid chains of words using depth-first search."""
+        if not remaining:
+            # We've used all words in this combination, add this chain to results
+            result.append(tuple(current_chain))
+            return
+
+        last_word = current_chain[-1]
+        # Only try extending with words that can actually follow the last word
+        for next_word in adjacency[last_word]:
+            if next_word in remaining:
+                current_chain.append(next_word)
+                self._build_chains_recursive(
+                    current_chain,
+                    remaining - {next_word},
+                    adjacency,
+                    result,
+                )
+                current_chain.pop()  # Backtrack
 
     def _filter_covers_by_spangram(
         self, covers: set[frozenset[Strand]]
