@@ -34,4 +34,10 @@ def load_dictionary():
         if word.strip().isalpha() and word.strip().isascii()
     }
 
+    # Add valid single-letter words
+    words |= {"A", "I"}
+
+    # Add single-letter elisions (of -> 'o, and -> 'n)
+    words |= {"O", "N"}
+
     return words
