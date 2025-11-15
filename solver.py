@@ -16,11 +16,23 @@ class Solver:
         finder: Finder,
         coverer: Coverer,
         num_words: int | None = None,
+        spangram_max_words=5,
     ):
+        """
+        Parameters:
+        - grid: the grid of the puzzle
+        - finder: the finder object
+        - coverer: the coverer object
+        - num_words: the number of words that should be in the solution
+        - spangram_max_words: the maximum number of words that can be concatenated to
+            form a spangram (we assume this is no higher than 5 in real solutions)
+        """
         self.grid = grid
         self.finder = finder
         self.coverer = coverer
         self.num_words = num_words
+        self.spangram_max_words = spangram_max_words
+
         self.num_rows = len(grid)
         self.num_cols = len(grid[0])
 
@@ -29,7 +41,7 @@ class Solver:
         to exactly cover the grid with those words.
 
         Returns a set of solutions, where each solution is a set of strands covering
-        the grid.
+        the grid including at least one spangram.
         """
 
         logger.info("Finding all words")
@@ -116,6 +128,10 @@ class Solver:
             elif len(cover) > num_words:
                 # Number of words that need to be concatenated into one
                 num_to_concat = len(cover) - num_words + 1
+
+                # ASSUMPTION: spangrams never consist of this many words
+                if num_to_concat > self.spangram_max_words:
+                    continue
 
                 # Try all combinations of words that could be concatenated
                 for words_to_concat in combinations(cover, num_to_concat):
