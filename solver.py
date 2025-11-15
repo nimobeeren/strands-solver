@@ -122,36 +122,19 @@ class Solver:
                     # Try all permutations since concatenation order matters
                     for word_order in permutations(words_to_concat):
                         # Try to concatenate the words in this order
-                        concatenated = self._try_concatenate_words(word_order)
-                        if concatenated and concatenated.is_spangram(
-                            self.num_rows, self.num_cols
-                        ):
-                            # Create new cover with concatenated word replacing individual words
-                            new_cover = frozenset(
-                                (cover - set(words_to_concat)) | {concatenated}
-                            )
-                            covers_with_correct_num_words.add(new_cover)
+                        first_word = word_order[0]
+                        other_words = word_order[1:]
+
+                        if first_word.can_concatenate(*other_words):
+                            concatenated = first_word.concatenate(*other_words)
+                            if concatenated.is_spangram(self.num_rows, self.num_cols):
+                                # Create new cover with concatenated word replacing individual words
+                                new_cover = frozenset(
+                                    (cover - set(words_to_concat)) | {concatenated}
+                                )
+                                covers_with_correct_num_words.add(new_cover)
 
         return covers_with_correct_num_words
-
-    @staticmethod
-    def _try_concatenate_words(words: tuple[Strand, ...]) -> Strand | None:
-        """Try to concatenate a sequence of words.
-
-        Returns the concatenated strand if all words can be concatenated in order,
-        None otherwise.
-        """
-        if len(words) == 0:
-            return None
-        if len(words) == 1:
-            return words[0]
-
-        result = words[0]
-        for word in words[1:]:
-            if not result.can_concatenate(word):
-                return None
-            result = result.concatenate(word)
-        return result
 
     def _filter_covers_by_spangram(
         self, covers: set[frozenset[Strand]]

@@ -45,7 +45,39 @@ class Strand:
                 touches_bottom = True
         return (touches_left and touches_right) or (touches_top and touches_bottom)
 
-    def can_concatenate(self, other: "Strand") -> bool:
+    def can_concatenate(self, *others: "Strand") -> bool:
+        """Checks whether this strand can be concatenated with one or more other strands.
+
+        For multiple strands, checks if they can be concatenated in sequence:
+        self -> others[0] -> others[1] -> ...
+        """
+        if not others:
+            raise ValueError("Cannot check concatenation with no other strands")
+
+        strands = [self] + list(others)
+
+        # Check each adjacent pair in the sequence
+        for i in range(len(strands) - 1):
+            if not strands[i]._can_concatenate_single(strands[i + 1]):
+                return False
+
+        return True
+
+    def concatenate(self, *others: "Strand") -> "Strand":
+        """Creates a new strand by concatenating this strand with one or more other strands.
+
+        For multiple strands, concatenates them in sequence:
+        self + others[0] + others[1] + ...
+
+        Behavior is undefined when concatenating strands for which can_concatenate
+        returns False.
+        """
+        result = self
+        for other in others:
+            result = result._concatenate_single(other)
+        return result
+
+    def _can_concatenate_single(self, other: "Strand") -> bool:
         """Checks whether the last position of this strand is adjacent to the first
         position of another strand."""
         for direction in Direction:
@@ -57,10 +89,8 @@ class Strand:
                 return True
         return False
 
-    def concatenate(self, other: "Strand") -> "Strand":
+    def _concatenate_single(self, other: "Strand") -> "Strand":
         """Creates a new strand by concatenating this strand with another strand."""
-        if not self.can_concatenate(other):
-            raise ValueError("Strands cannot be concatenated")
         return Strand(
             positions=self.positions + other.positions,
             string=self.string + other.string,

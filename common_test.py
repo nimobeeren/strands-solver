@@ -56,6 +56,12 @@ def test_can_concatenate():
     assert strand1.can_concatenate(strand2)
     assert not strand2.can_concatenate(strand1)
 
+    # Can concatenate three in sequence
+    strand1 = Strand(positions=((0, 0), (1, 0), (2, 0)), string="ABC")
+    strand2 = Strand(positions=((3, 0), (4, 0), (5, 0)), string="DEF")
+    strand3 = Strand(positions=((6, 0), (7, 0), (8, 0)), string="GHI")
+    assert strand1.can_concatenate(strand2, strand3)
+
 
 def test_cannot_concatenate():
     """If the last position of strand A is not adjacent to the first position of strand B,
@@ -65,18 +71,35 @@ def test_cannot_concatenate():
     assert not strand1.can_concatenate(strand2)
     assert not strand2.can_concatenate(strand1)
 
+    # Raises an error if no other strands are provided
+    with pytest.raises(ValueError):
+        strand1.can_concatenate()
+
 
 def test_concatenate():
     """Concatenating two strands should create a new strand with their positions and strings concatenated."""
     strand1 = Strand(positions=((0, 0), (1, 0), (2, 0)), string="ABC")
     strand2 = Strand(positions=((3, 0), (4, 0), (5, 0)), string="DEF")
+    strand3 = Strand(positions=((6, 0), (7, 0), (8, 0)), string="GHI")
     assert strand1.concatenate(strand2) == Strand(
         positions=((0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (5, 0)), string="ABCDEF"
     )
 
-    # Should raise an error if the strands cannot be concatenated
-    with pytest.raises(ValueError):
-        strand2.concatenate(strand1)
+    # Works with multiple strands in sequence
+    assert strand1.concatenate(strand2, strand3) == Strand(
+        positions=(
+            (0, 0),
+            (1, 0),
+            (2, 0),
+            (3, 0),
+            (4, 0),
+            (5, 0),
+            (6, 0),
+            (7, 0),
+            (8, 0),
+        ),
+        string="ABCDEFGHI",
+    )
 
 
 def test_no_self_crossing_straight_line():
