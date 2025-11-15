@@ -35,9 +35,6 @@ class Solver:
         words = self.finder.find_all_words()
         logger.info(f"Found {len(words)} words")
 
-        # Filter out words that appear in different places
-        # The words in the final solution never appear in more than one place in
-        # the grid
         words = self._filter_duplicate_words(words)
         logger.info(f"After filtering duplicates: {len(words)} words")
 
@@ -45,54 +42,13 @@ class Solver:
         covers = self.coverer.cover(words)
         logger.info(f"Found {len(covers)} covers")
 
-        if self.num_words is None:
-            raise NotImplementedError()  # TODO
+        covers = self._filter_covers_by_num_words(covers)
+        logger.info(f"After filtering by number of words: {len(covers)} covers")
 
-        # Find covers which have the correct number of words
-        covers_with_correct_num_words = set[frozenset[Strand]]()
-        for cover in covers:
-            # If cover doesn't have enough words, skip it
-            if len(cover) < self.num_words:
-                continue
-            # If a cover has exactly enough words, it's trivially correct
-            elif len(cover) == self.num_words:
-                covers_with_correct_num_words.add(cover)
-            # If a cover has too many words, we may be able to reduce the number by
-            # concatenating some words
-            elif len(cover) == self.num_words + 1:
-                pairs: set[tuple[Strand, Strand]] = set()
-                for word1 in cover:
-                    for word2 in cover - {word1}:
-                        pairs.add((word1, word2))
+        covers = self._filter_covers_by_spangram(covers)
+        logger.info(f"After filtering by spangram: {len(covers)} covers")
 
-                for word1, word2 in pairs:
-                    if word1.can_concatenate(word2):
-                        concatenated = word1.concatenate(word2)
-                        if concatenated.is_spangram(self.num_rows, self.num_cols):
-                            covers_with_correct_num_words.add(
-                                frozenset((cover - {word1, word2}) | {concatenated})
-                            )
-            else:
-                # TODO generalize to cases where cover has more than `num_words + 1`
-                # words, requiring multiple concatenations
-                continue
-
-        logger.info(
-            f"Found {len(covers_with_correct_num_words)} covers with the correct number of words"
-        )
-
-        # Find covers which contain at least one spangram
-        covers_with_spangram = set[frozenset[Strand]]()
-        for cover in covers_with_correct_num_words:
-            if any(
-                strand
-                for strand in cover
-                if strand.is_spangram(self.num_rows, self.num_cols)
-            ):
-                covers_with_spangram.add(cover)
-        logger.info(f"Found {len(covers_with_spangram)} covers with a spangram")
-
-        return covers_with_spangram
+        return covers
 
     @staticmethod
     def _filter_duplicate_words(words: set[Strand]) -> set[Strand]:
@@ -132,3 +88,59 @@ class Solver:
                 # Otherwise, filter out all instances (different position sets)
 
         return filtered
+
+    def _filter_covers_by_num_words(
+        self, covers: set[frozenset[Strand]]
+    ) -> set[frozenset[Strand]]:
+        """Filter covers to only include those with the correct number of words.
+
+        If a cover has too many words, attempts to reduce the count by concatenating
+        pairs of words that can form a spangram.
+        """
+        if self.num_words is None:
+            raise NotImplementedError()  # TODO
+
+        # Find covers which have the correct number of words
+        covers_with_correct_num_words = set[frozenset[Strand]]()
+        for cover in covers:
+            # If cover doesn't have enough words, skip it
+            if len(cover) < self.num_words:
+                continue
+            # If a cover has exactly enough words, it's trivially correct
+            elif len(cover) == self.num_words:
+                covers_with_correct_num_words.add(cover)
+            # If a cover has too many words, we may be able to reduce the number by
+            # concatenating some words
+            elif len(cover) == self.num_words + 1:
+                pairs: set[tuple[Strand, Strand]] = set()
+                for word1 in cover:
+                    for word2 in cover - {word1}:
+                        pairs.add((word1, word2))
+
+                for word1, word2 in pairs:
+                    if word1.can_concatenate(word2):
+                        concatenated = word1.concatenate(word2)
+                        if concatenated.is_spangram(self.num_rows, self.num_cols):
+                            covers_with_correct_num_words.add(
+                                frozenset((cover - {word1, word2}) | {concatenated})
+                            )
+            else:
+                # TODO generalize to cases where cover has more than `num_words + 1`
+                # words, requiring multiple concatenations
+                continue
+
+        return covers_with_correct_num_words
+
+    def _filter_covers_by_spangram(
+        self, covers: set[frozenset[Strand]]
+    ) -> set[frozenset[Strand]]:
+        """Filter covers to only include those that contain at least one spangram."""
+        covers_with_spangram = set[frozenset[Strand]]()
+        for cover in covers:
+            if any(
+                strand
+                for strand in cover
+                if strand.is_spangram(self.num_rows, self.num_cols)
+            ):
+                covers_with_spangram.add(cover)
+        return covers_with_spangram
