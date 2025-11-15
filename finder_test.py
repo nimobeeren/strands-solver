@@ -34,7 +34,7 @@ def test_find_words_no_min_length():
         ["C", "O", "O", "L"],
         ["E", "A", "S", "Y"],
     ]
-    finder = Finder(grid, min_length=0)
+    finder = Finder(grid, min_length=None)
     words = finder.find_words(current_pos=(0, 0))
     words_str = {w.string for w in words}
     assert words_str == {

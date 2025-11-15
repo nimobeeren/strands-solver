@@ -8,19 +8,20 @@ logger = logging.getLogger(__name__)
 
 
 class Finder:
-    """Finds strands forming words given a grid and an optional dictionary."""
+    """Finds strands forming words given a grid and an optional dictionary and minimum
+    word length."""
 
     def __init__(
         self,
         grid: list[list[str]],
         *,
         dictionary: set[str] | None = None,
-        min_length: int = 4,
+        min_length: int | None = 4,
     ) -> None:
         self.grid = grid
         self.num_rows = len(grid)
         self.num_cols = len(grid[0])
-        self.min_length = min_length
+        self.min_length = 1 if min_length is None else min_length
 
         logger.info("Loading dictionary")
         if dictionary is None:
