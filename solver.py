@@ -1,4 +1,5 @@
 import logging
+from itertools import combinations, permutations
 
 from common import Strand
 from coverer import Coverer
@@ -96,7 +97,7 @@ class Solver:
         """Filter covers to only include those with the correct number of words.
 
         If a cover has too many words, attempts to reduce the count by concatenating
-        pairs of words that can form a spangram.
+        words that can form a spangram.
         """
         if num_words is None:
             return covers
@@ -112,25 +113,45 @@ class Solver:
                 covers_with_correct_num_words.add(cover)
             # If a cover has too many words, we may be able to reduce the number by
             # concatenating some words
-            elif len(cover) == num_words + 1:
-                pairs: set[tuple[Strand, Strand]] = set()
-                for word1 in cover:
-                    for word2 in cover - {word1}:
-                        pairs.add((word1, word2))
+            elif len(cover) > num_words:
+                # Number of words that need to be concatenated into one
+                num_to_concat = len(cover) - num_words + 1
 
-                for word1, word2 in pairs:
-                    if word1.can_concatenate(word2):
-                        concatenated = word1.concatenate(word2)
-                        if concatenated.is_spangram(self.num_rows, self.num_cols):
-                            covers_with_correct_num_words.add(
-                                frozenset((cover - {word1, word2}) | {concatenated})
+                # Try all combinations of words that could be concatenated
+                for words_to_concat in combinations(cover, num_to_concat):
+                    # Try all permutations since concatenation order matters
+                    for word_order in permutations(words_to_concat):
+                        # Try to concatenate the words in this order
+                        concatenated = self._try_concatenate_words(word_order)
+                        if concatenated and concatenated.is_spangram(
+                            self.num_rows, self.num_cols
+                        ):
+                            # Create new cover with concatenated word replacing individual words
+                            new_cover = frozenset(
+                                (cover - set(words_to_concat)) | {concatenated}
                             )
-            else:
-                # TODO generalize to cases where cover has more than `num_words + 1`
-                # words, requiring multiple concatenations
-                continue
+                            covers_with_correct_num_words.add(new_cover)
 
         return covers_with_correct_num_words
+
+    @staticmethod
+    def _try_concatenate_words(words: tuple[Strand, ...]) -> Strand | None:
+        """Try to concatenate a sequence of words.
+
+        Returns the concatenated strand if all words can be concatenated in order,
+        None otherwise.
+        """
+        if len(words) == 0:
+            return None
+        if len(words) == 1:
+            return words[0]
+
+        result = words[0]
+        for word in words[1:]:
+            if not result.can_concatenate(word):
+                return None
+            result = result.concatenate(word)
+        return result
 
     def _filter_covers_by_spangram(
         self, covers: set[frozenset[Strand]]

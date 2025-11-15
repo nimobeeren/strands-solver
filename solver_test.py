@@ -196,6 +196,90 @@ def test_solve_cant_concatenate_if_not_spangram():
     assert len(solutions) == 0
 
 
+def test_solve_three_word_spangram():
+    """Test that we can concatenate 3 words to form a spangram."""
+    grid = [["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"]]
+
+    # There is only one solution with 1 word: ABCDEFGHIJKL (spangram made from ABCD + EFGH + IJKL)
+    # This requires concatenating 3 words to form the spangram
+
+    finder = Finder(grid, dictionary={"ABCD", "EFGH", "IJKL"})
+    coverer = Coverer(grid)
+    solver = Solver(grid, finder=finder, coverer=coverer, num_words=1)
+    solutions = solver.solve()
+
+    expected = {
+        frozenset(
+            [
+                Strand(
+                    positions=(
+                        (0, 0),
+                        (1, 0),
+                        (2, 0),
+                        (3, 0),
+                        (4, 0),
+                        (5, 0),
+                        (6, 0),
+                        (7, 0),
+                        (8, 0),
+                        (9, 0),
+                        (10, 0),
+                        (11, 0),
+                    ),
+                    string="ABCDEFGHIJKL",
+                ),
+            ]
+        )
+    }
+
+    assert solutions == expected
+
+
+def test_solve_four_word_spangram():
+    """Test that we can concatenate 4 words to form a spangram."""
+    grid = [
+        ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P"]
+    ]
+
+    # There is only one solution with 1 word: ABCDEFGHIJKLMNOP (spangram made from ABCD + EFGH + IJKL + MNOP)
+    # This requires concatenating 4 words to form the spangram
+
+    finder = Finder(grid, dictionary={"ABCD", "EFGH", "IJKL", "MNOP"})
+    coverer = Coverer(grid)
+    solver = Solver(grid, finder=finder, coverer=coverer, num_words=1)
+    solutions = solver.solve()
+
+    expected = {
+        frozenset(
+            [
+                Strand(
+                    positions=(
+                        (0, 0),
+                        (1, 0),
+                        (2, 0),
+                        (3, 0),
+                        (4, 0),
+                        (5, 0),
+                        (6, 0),
+                        (7, 0),
+                        (8, 0),
+                        (9, 0),
+                        (10, 0),
+                        (11, 0),
+                        (12, 0),
+                        (13, 0),
+                        (14, 0),
+                        (15, 0),
+                    ),
+                    string="ABCDEFGHIJKLMNOP",
+                ),
+            ]
+        )
+    }
+
+    assert solutions == expected
+
+
 @pytest.mark.skip("Not fixed yet")
 def test_solve_spangram_with_duplicate_word():
     """Edge case where the spangram is a concatenation of words where one word appears
