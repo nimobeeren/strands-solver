@@ -36,6 +36,36 @@ def test_solve():
     assert expected in solutions
 
 
+def test_solve_no_num_words():
+    # Simple grid where each word appears only once
+    grid = [
+        ["E", "A", "S", "Y", "S"],
+        ["C", "O", "O", "L", "P"],
+        ["T", "E", "S", "T", "A"],
+        ["W", "O", "R", "D", "N"],
+    ]
+
+    finder = Finder(grid)
+    coverer = Coverer(grid)
+    solver = Solver(grid, finder=finder, coverer=coverer)  # no num_words here
+    solutions = solver.solve()
+
+    # Should find at least one solution
+    assert len(solutions) >= 1
+
+    # The expected solution should be in the solutions set
+    expected = frozenset(
+        [
+            Strand(positions=((0, 0), (1, 0), (2, 0), (3, 0)), string="EASY"),
+            Strand(positions=((4, 0), (4, 1), (4, 2), (4, 3)), string="SPAN"),
+            Strand(positions=((0, 1), (1, 1), (2, 1), (3, 1)), string="COOL"),
+            Strand(positions=((0, 2), (1, 2), (2, 2), (3, 2)), string="TEST"),
+            Strand(positions=((0, 3), (1, 3), (2, 3), (3, 3)), string="WORD"),
+        ]
+    )
+    assert expected in solutions
+
+
 def test_solve_single_spangram():
     grid = [
         ["A", "B", "C", "D", "E", "K", "L", "M", "N"],

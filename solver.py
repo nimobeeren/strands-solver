@@ -42,8 +42,9 @@ class Solver:
         covers = self.coverer.cover(words)
         logger.info(f"Found {len(covers)} covers")
 
-        covers = self._filter_covers_by_num_words(covers)
-        logger.info(f"After filtering by number of words: {len(covers)} covers")
+        if self.num_words is not None:
+            covers = self._filter_covers_by_num_words(covers, self.num_words)
+            logger.info(f"After filtering by number of words: {len(covers)} covers")
 
         covers = self._filter_covers_by_spangram(covers)
         logger.info(f"After filtering by spangram: {len(covers)} covers")
@@ -90,28 +91,28 @@ class Solver:
         return filtered
 
     def _filter_covers_by_num_words(
-        self, covers: set[frozenset[Strand]]
+        self, covers: set[frozenset[Strand]], num_words: int | None
     ) -> set[frozenset[Strand]]:
         """Filter covers to only include those with the correct number of words.
 
         If a cover has too many words, attempts to reduce the count by concatenating
         pairs of words that can form a spangram.
         """
-        if self.num_words is None:
-            raise NotImplementedError()  # TODO
+        if num_words is None:
+            return covers
 
         # Find covers which have the correct number of words
         covers_with_correct_num_words = set[frozenset[Strand]]()
         for cover in covers:
             # If cover doesn't have enough words, skip it
-            if len(cover) < self.num_words:
+            if len(cover) < num_words:
                 continue
             # If a cover has exactly enough words, it's trivially correct
-            elif len(cover) == self.num_words:
+            elif len(cover) == num_words:
                 covers_with_correct_num_words.add(cover)
             # If a cover has too many words, we may be able to reduce the number by
             # concatenating some words
-            elif len(cover) == self.num_words + 1:
+            elif len(cover) == num_words + 1:
                 pairs: set[tuple[Strand, Strand]] = set()
                 for word1 in cover:
                     for word2 in cover - {word1}:
