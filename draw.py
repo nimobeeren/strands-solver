@@ -71,7 +71,7 @@ def _get_connector_cell(
         conn_key = tuple(sorted([pos_left, pos_right]))
 
         if conn_key in connections:
-            return RenderCell(content="─", strand_indices=connections[conn_key])
+            return RenderCell(content="───", strand_indices=connections[conn_key])
         else:
             return RenderCell(content=" ")
 
@@ -118,12 +118,12 @@ def _get_connector_cell(
         elif has_down_right:
             # Down-right diagonal
             return RenderCell(
-                content="╲", strand_indices=connections[conn_key_down_right]
+                content="▔╲▁", strand_indices=connections[conn_key_down_right]
             )
         elif has_down_left:
             # Down-left diagonal
             return RenderCell(
-                content="╱", strand_indices=connections[conn_key_down_left]
+                content="▁╱▔", strand_indices=connections[conn_key_down_left]
             )
         else:
             return RenderCell(content=" ")
@@ -228,6 +228,7 @@ def _render_grid(data: list[list[RenderCell]]) -> None:
                 else:
                     # Empty space
                     style = "white"
+            # Pad cell content to 3 characters (centered)
             line.append(f"{cell.content:^3}", style=style)
         console.print(line)
 
