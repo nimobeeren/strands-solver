@@ -57,7 +57,7 @@ class Solver:
 
         if self.num_words is not None:
             covers = self._try_concatenate_words(covers, self.num_words)
-            logger.info(f"After concaenating words: {len(covers)} covers")
+            logger.info(f"After concatenating words: {len(covers)} covers")
 
         covers = self._filter_covers_by_spangram(covers)
         logger.info(f"After filtering by spangram: {len(covers)} covers")
