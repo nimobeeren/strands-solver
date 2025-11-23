@@ -42,3 +42,15 @@ uv run pytest
 ```
 
 The OCR tests are a bit slow so you if you don't need it you can skip it with `--ignore ocr_test.py`
+
+### Running the type checker
+
+```bash
+uv run pyright
+```
+
+### Formatting the code
+
+```bash
+uv run ruff format
+```

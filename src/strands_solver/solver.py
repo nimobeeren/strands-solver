@@ -72,7 +72,6 @@ class Solver:
 
         return solutions
 
-
     def _try_concatenate_words(
         self, covers: set[Cover], num_words: int
     ) -> set[Solution]:

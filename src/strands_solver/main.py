@@ -45,7 +45,7 @@ def main():
         logging.info("First solution:\n")
         draw(grid, solutions[0])
         print()
-        
+
         print(
             f"🟡 {' + '.join(strand.string for strand in solutions[0].spangram)} (spangram)"
         )
