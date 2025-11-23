@@ -1,9 +1,9 @@
 import logging
 from itertools import combinations
 
-from common import Cover, Solution, Strand
-from coverer import Coverer
-from finder import Finder
+from .common import Cover, Solution, Strand
+from .coverer import Coverer
+from .finder import Finder
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +52,7 @@ class Solver:
         covers = self.coverer.cover(words)
         logger.info(f"Found {len(covers)} covers")
 
+        # TODO: probably create a SpangramFinder class
         logger.info("Finding spangrams")
         if self.num_words is not None:
             solutions = self._try_concatenate_words(covers, self.num_words)
@@ -71,6 +72,7 @@ class Solver:
 
         return solutions
 
+
     def _try_concatenate_words(
         self, covers: set[Cover], num_words: int
     ) -> set[Solution]:
@@ -86,6 +88,9 @@ class Solver:
         can be formed in multiple positions in the grid), since valid solutions must
         concatenate all duplicates.
         """
+        # TODO: concatenation still allows crossing strands at the word border, but this
+        # doesn't happen in real solutions
+
         # Identify duplicate words across all covers
         all_strands = set()
         for cover in covers:
@@ -113,10 +118,11 @@ class Solver:
             # skip it
             if len(cover) < num_words:
                 continue
-            # If a cover has exactly enough words, it's trivially valid
+            # If a cover has exactly enough words, we don't need to concatenate
+            # any words
             elif len(cover) == num_words:
+                # For every spangram in the cover, add a solution with that spangram
                 for strand in cover:
-                    # For every spangram in the cover, add a solution with that spangram
                     if strand.is_spangram(self.num_rows, self.num_cols):
                         solution = Solution(
                             spangram=(strand,),

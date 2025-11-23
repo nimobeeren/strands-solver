@@ -1,6 +1,6 @@
 from PIL import Image
 
-import ocr
+from strands_solver import ocr
 
 
 def test_extract_grid():

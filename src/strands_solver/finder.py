@@ -1,8 +1,8 @@
 import bisect
 import logging
 
-from common import Strand, Direction
-from dictionary import load_dictionary
+from .common import Strand, Direction
+from .dictionary import load_dictionary
 
 logger = logging.getLogger(__name__)
 

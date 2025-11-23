@@ -15,15 +15,15 @@ The dictionary will be automatically downloaded on first use.
 2. Recognize the puzzle grid and theme and save them to a JSON file:
 
 ```bash
-uv run ocr.py path_to_puzzle.jpeg path_to_puzzle.json
+uv run strands-ocr path_to_puzzle.jpeg path_to_puzzle.json
 ```
 
-Note: the defaults are tuned for iPhone 15 screenshots. All spatial parameters are relative to image height (0.0=top, 1.0=bottom), making them resolution-independent. For other devices or layouts, you may need to adjust the `--tile-size`, `--origin-x`, and `--origin-y` parameters. Run `uv run ocr.py --help` for more information.
+Note: the defaults are tuned for iPhone 15 screenshots. All spatial parameters are relative to image height (0.0=top, 1.0=bottom), making them resolution-independent. For other devices or layouts, you may need to adjust the `--tile-size`, `--origin-x`, and `--origin-y` parameters. Run `uv run strands-ocr --help` for more information.
 
 3. Run the solver:
 
 ```bash
-uv run main.py path_to_puzzle.json
+uv run strands-solver path_to_puzzle.json
 ```
 
 ## Limitations

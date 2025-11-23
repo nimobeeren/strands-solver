@@ -19,13 +19,21 @@ dependencies = [
 ]
 
 [project.scripts]
-strands-ocr = "ocr:cli_main"
+strands-solver = "strands_solver.main:main"
+strands-ocr = "strands_solver.ocr:main"
 
 [dependency-groups]
 dev = [
     "ipykernel>=6.30.1",
     "pytest>=8.4.2",
 ]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
 log_cli = true

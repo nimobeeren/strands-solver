@@ -4,7 +4,7 @@ from typing import Literal
 from rich.console import Console
 from rich.text import Text
 
-from common import Solution, Strand
+from .common import Solution, Strand
 
 StrandType = Literal["spangram", "other"]
 

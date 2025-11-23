@@ -1,6 +1,6 @@
 import logging
 
-from common import Cover, Strand
+from .common import Cover, Strand
 
 logger = logging.getLogger(__name__)
 

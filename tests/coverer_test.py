@@ -1,5 +1,5 @@
-from common import Cover, Strand
-from coverer import Coverer
+from strands_solver.common import Cover, Strand
+from strands_solver.coverer import Coverer
 
 
 def test_cover_single_solution():

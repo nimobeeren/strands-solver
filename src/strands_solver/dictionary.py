@@ -8,7 +8,7 @@ def load_dictionary():
     """Loads the ENABLE1 dictionary from the internet."""
 
     # Define the data directory and file path
-    data_dir = Path(__file__).parent / "data"
+    data_dir = Path(__file__).parent.parent.parent / "data"
     dict_file = data_dir / "enable1_words.txt"
 
     # Create data directory if it doesn't exist
@@ -17,7 +17,7 @@ def load_dictionary():
     # Download the dictionary file if it doesn't exist
     if not dict_file.exists():
         url = "https://raw.githubusercontent.com/rressler/data_raw_courses/main/enable1_words.txt"
-        logging.info(f"Downloading dictionary from {url}...")
+        logging.info("Downloading dictionary")
         response = httpx.get(url)
         response.raise_for_status()
         dict_file.write_text(response.text)

@@ -1,6 +1,6 @@
 import pytest
 
-from common import Strand
+from strands_solver.common import Strand
 
 
 def test_overlaps():

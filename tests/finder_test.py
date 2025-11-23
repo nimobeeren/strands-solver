@@ -1,4 +1,4 @@
-from finder import Finder
+from strands_solver.finder import Finder
 
 
 def test_find_words():

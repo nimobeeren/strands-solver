@@ -591,7 +591,7 @@ def _cli_parse_args(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def cli_main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = _cli_parse_args(list(argv) if argv is not None else sys.argv[1:])
     try:
         process_image_to_json(
@@ -610,4 +610,4 @@ def cli_main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(cli_main())
+    raise SystemExit(main())

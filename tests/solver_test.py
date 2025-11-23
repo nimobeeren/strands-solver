@@ -1,7 +1,7 @@
-from coverer import Coverer
-from finder import Finder
-from solver import Solver
-from common import Solution, Strand
+from strands_solver.coverer import Coverer
+from strands_solver.finder import Finder
+from strands_solver.solver import Solver
+from strands_solver.common import Solution, Strand
 
 
 def test_solve():
