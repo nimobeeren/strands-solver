@@ -48,14 +48,12 @@ class Solver:
         words = self.finder.find_all_words()
         logger.info(f"Found {len(words)} words")
 
-        words = self._filter_duplicate_words(words)
-        logger.info(f"After filtering duplicates: {len(words)} words")
-
         logger.info("Covering grid")
         covers = self.coverer.cover(words)
         logger.info(f"Found {len(covers)} covers")
 
         if self.num_words is not None:
+            logger.info("Trying to concatenate words")
             covers = self._try_concatenate_words(covers, self.num_words)
             logger.info(f"After concatenating words: {len(covers)} covers")
 
@@ -63,45 +61,6 @@ class Solver:
         logger.info(f"After filtering by spangram: {len(covers)} covers")
 
         return covers
-
-    @staticmethod
-    def _filter_duplicate_words(words: set[Strand]) -> set[Strand]:
-        """Filter out words that appear in different places.
-
-        If a word appears multiple times using different sets of positions, we filter
-        out all instances, since we know the final solution never contains a word which
-        could be formed using different sets of positions.
-
-        If a word appears multiple times using the exact same set of grid positions
-        (just traced in different orders), we keep only one."""
-        # Group strands by their word string
-        words_by_string: dict[str, list[Strand]] = {}
-        for strand in words:
-            if strand.string not in words_by_string:
-                words_by_string[strand.string] = []
-            words_by_string[strand.string].append(strand)
-
-        # Filter out words that have instances with different position sets
-        filtered = set()
-        for word_string, strands in words_by_string.items():
-            if len(strands) == 1:
-                # Only one instance, keep it
-                filtered.update(strands)
-            else:
-                # Check if all instances use the exact same set of positions
-                first_positions = set(strands[0].positions)
-                all_same_positions = all(
-                    set(strand.positions) == first_positions for strand in strands[1:]
-                )
-
-                if all_same_positions:
-                    # All instances use the same positions (different traversal orders)
-                    # Keep the one with lexicographically smallest positions tuple
-                    # This is an arbitrary but consistent way to choose one
-                    filtered.add(min(strands, key=lambda s: s.positions))
-                # Otherwise, filter out all instances (different position sets)
-
-        return filtered
 
     def _try_concatenate_words(
         self, covers: set[frozenset[Strand]], num_words: int
@@ -113,24 +72,63 @@ class Solver:
 
         Returns a set of covers with the correct number of words, which may or may not
         contain a (concatenated) spangram.
+
+        Optimization: Only tries combinations that include all duplicate words (words that
+        can be formed in multiple positions in the grid), since valid solutions must
+        concatenate all duplicates.
         """
+        # Identify duplicate words across all covers
+        all_strands = set()
+        for cover in covers:
+            all_strands |= cover
+
+        words_by_string: dict[str, list[Strand]] = {}
+        for strand in all_strands:
+            if strand.string not in words_by_string:
+                words_by_string[strand.string] = []
+            words_by_string[strand.string].append(strand)
+
+        # A word is a duplicate if it appears with different position sets
+        duplicate_strings = set()
+        for word_string, strands in words_by_string.items():
+            if len(strands) > 1:
+                position_sets = [frozenset(strand.positions) for strand in strands]
+                if len(set(position_sets)) > 1:
+                    duplicate_strings.add(word_string)
+
         # Find covers which have the correct number of words
         covers_with_correct_num_words = set[frozenset[Strand]]()
+
         for cover in covers:
-            # If cover doesn't have enough words, skip it
+            # If cover doesn't have enough words, it can never be a valid solution, so
+            # skip it
             if len(cover) < num_words:
                 continue
-            # If a cover has exactly enough words, it's trivially correct
+            # If a cover has exactly enough words, it's trivially valid
             elif len(cover) == num_words:
                 covers_with_correct_num_words.add(cover)
             # If a cover has too many words, we may be able to reduce the number by
-            # concatenating some words
+            # concatenating some words (note: only the spangram can be a concatenation)
             elif len(cover) > num_words:
                 # Number of words that need to be concatenated into one
-                num_to_concat = len(cover) - num_words + 1
+                K = len(cover) - num_words + 1
 
-                # ASSUMPTION: spangrams never consist of this many words
-                if num_to_concat > self.spangram_max_words:
+                # ASSUMPTION: there is a limit to how many words a spangram can consist
+                # of, and since we require concatenation of more words than that, this
+                # can't be a valid solution
+                if K > self.spangram_max_words:
+                    continue
+
+                # Identify duplicates in this cover
+                duplicates_in_cover = [
+                    strand for strand in cover if strand.string in duplicate_strings
+                ]
+                D = len(duplicates_in_cover)
+
+                # If there are more duplicates than words to concatenate, we can't
+                # include all duplicates in the concatenation. Therefore, this cover
+                # can never be a valid solution.
+                if D > K:
                     continue
 
                 # Build adjacency graph: map each word to words that can follow it
@@ -143,19 +141,59 @@ class Solver:
                         if word != other and word.can_concatenate(other)
                     ]
 
-                # Try all combinations of words that could be concatenated
-                for words_to_concat in combinations(cover, num_to_concat):
-                    # Find valid orderings using adjacency graph (instead of all permutations)
-                    for valid_order in self._find_valid_orderings(
-                        words_to_concat, adjacency
-                    ):
-                        concatenated = valid_order[0].concatenate(*valid_order[1:])
-                        if concatenated.is_spangram(self.num_rows, self.num_cols):
-                            # Create new cover with concatenated word replacing individual words
-                            new_cover = frozenset(
-                                (cover - set(words_to_concat)) | {concatenated}
-                            )
-                            covers_with_correct_num_words.add(new_cover)
+                if D == 0:
+                    # No duplicates, need to try all K-length orderings of words in
+                    # the cover
+                    for words_to_concat in combinations(cover, K):
+                        for valid_order in self._find_valid_orderings(
+                            words_to_concat, adjacency
+                        ):
+                            concatenated = valid_order[0].concatenate(*valid_order[1:])
+                            if concatenated.is_spangram(self.num_rows, self.num_cols):
+                                new_cover = frozenset(
+                                    (cover - set(words_to_concat)) | {concatenated}
+                                )
+                                covers_with_correct_num_words.add(new_cover)
+                else:
+                    # Only try combinations that include all duplicates
+                    non_duplicates = [
+                        strand for strand in cover if strand not in duplicates_in_cover
+                    ]
+
+                    # Need to choose (K - D) non-duplicates to go with D duplicates
+                    num_non_duplicates_needed = K - D
+
+                    if num_non_duplicates_needed == 0:
+                        # All words to concatenate are duplicates
+                        words_to_concat = tuple(duplicates_in_cover)
+                        for valid_order in self._find_valid_orderings(
+                            words_to_concat, adjacency
+                        ):
+                            concatenated = valid_order[0].concatenate(*valid_order[1:])
+                            if concatenated.is_spangram(self.num_rows, self.num_cols):
+                                new_cover = frozenset(
+                                    (cover - set(words_to_concat)) | {concatenated}
+                                )
+                                covers_with_correct_num_words.add(new_cover)
+                    else:
+                        # Try combinations of non-duplicates with all duplicates
+                        for non_dup_combo in combinations(
+                            non_duplicates, num_non_duplicates_needed
+                        ):
+                            words_to_concat = tuple(duplicates_in_cover) + non_dup_combo
+                            for valid_order in self._find_valid_orderings(
+                                words_to_concat, adjacency
+                            ):
+                                concatenated = valid_order[0].concatenate(
+                                    *valid_order[1:]
+                                )
+                                if concatenated.is_spangram(
+                                    self.num_rows, self.num_cols
+                                ):
+                                    new_cover = frozenset(
+                                        (cover - set(words_to_concat)) | {concatenated}
+                                    )
+                                    covers_with_correct_num_words.add(new_cover)
 
         return covers_with_correct_num_words
 

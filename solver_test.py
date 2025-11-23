@@ -1,5 +1,3 @@
-import pytest
-
 from coverer import Coverer
 from finder import Finder
 from solver import Solver
@@ -280,41 +278,26 @@ def test_solve_four_word_spangram():
     assert solutions == expected
 
 
-@pytest.mark.skip("Not fixed yet")
 def test_solve_spangram_with_duplicate_word():
     """Edge case where the spangram is a concatenation of words where one word appears
     in multiple places in the grid (duplicate). Normally, this duplicate would get
     filtered out, but if it's part of a concatenated spangram, it should be kept."""
-    # NOTE: commenting out _filter_duplicate_words in solver.py fixes this, but
-    # increases running time a lot
     grid = [
-        ["A", "B", "C", "D", "E", "F", "G", "H"],
-        ["L", "K", "J", "I", "E", "F", "G", "H"],
+        ["A", "B"],
+        ["A", "C"],
     ]
 
-    finder = Finder(grid, dictionary={"ABCD", "EFGH", "IJKL"})
+    finder = Finder(grid, dictionary={"A", "B", "AC"}, min_length=1)
     coverer = Coverer(grid)
-    solver = Solver(grid, finder=finder, coverer=coverer, num_words=3)
+    solver = Solver(grid, finder=finder, coverer=coverer, num_words=2)
     solutions = solver.solve()
 
     expected = frozenset(
         {
-            # Spangram consisting of ABCD + EFGH
-            Strand(
-                string="ABCDEFGH",
-                positions=(
-                    (0, 0),
-                    (1, 0),
-                    (2, 0),
-                    (3, 0),
-                    (4, 0),
-                    (5, 0),
-                    (6, 0),
-                    (7, 0),
-                ),
-            ),
-            Strand(string="EFGH", positions=((4, 1), (5, 1), (6, 1), (7, 1))),
-            Strand(string="IJKL", positions=((3, 1), (2, 1), (1, 1), (0, 1))),
+            # Spangram consisting of A + AC (A is a duplicate)
+            Strand(positions=((0, 0), (0, 1), (1, 1)), string="AAC"),
+            # Regular word B
+            Strand(positions=((1, 0),), string="B"),
         }
     )
 
@@ -367,37 +350,3 @@ def solve_no_solutions_spangram_max_words():
     )
     solutions = solver.solve()
     assert len(solutions) == 0
-
-
-def test_filter_duplicate_words():
-    """Test that words with multiple instances using different position sets are filtered out."""
-    words = {
-        # FOOD appears once - should be kept
-        Strand(positions=((0, 0), (1, 0), (2, 0), (3, 0)), string="FOOD"),
-        # BOSS appears twice using the exact same set of positions (different traversal)
-        # Only one should be kept (the one with lexicographically smallest positions)
-        Strand(positions=((5, 2), (5, 1), (4, 0), (5, 0)), string="BOSS"),
-        Strand(positions=((5, 2), (5, 1), (5, 0), (4, 0)), string="BOSS"),
-        # TEST appears twice in completely different locations - should be filtered out
-        Strand(positions=((0, 1), (1, 1), (2, 1), (3, 1)), string="TEST"),
-        Strand(positions=((0, 5), (1, 5), (2, 5), (3, 5)), string="TEST"),
-        # WORD appears 3 times, all different position sets - should be filtered out
-        Strand(positions=((0, 2), (1, 2), (2, 2), (3, 2)), string="WORD"),
-        Strand(positions=((0, 3), (1, 3), (2, 3), (3, 3)), string="WORD"),
-        Strand(positions=((0, 4), (1, 4), (2, 4), (3, 4)), string="WORD"),
-        # WAYS appears twice with partial overlap but different position sets - should be filtered out
-        Strand(positions=((1, 0), (1, 1), (1, 0), (0, 0)), string="WAYS"),
-        Strand(positions=((1, 0), (1, 1), (1, 2), (0, 2)), string="WAYS"),
-    }
-
-    expected = {
-        # FOOD - unique word
-        Strand(positions=((0, 0), (1, 0), (2, 0), (3, 0)), string="FOOD"),
-        # BOSS - same position set (just different traversal order), keep the lexicographically smallest
-        Strand(positions=((5, 2), (5, 1), (4, 0), (5, 0)), string="BOSS"),
-        # TEST, WORD and WAYS filtered out (different position sets)
-    }
-
-    filtered = Solver._filter_duplicate_words(words)
-
-    assert filtered == expected

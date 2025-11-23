@@ -50,6 +50,7 @@ if __name__ == "__main__":
         print()
 
         # Write each solution to its own file in out/ directory
+        logging.info("Writing solutions to disk")
         output_dir = Path("out")
         if output_dir.exists():
             shutil.rmtree(output_dir)
@@ -58,7 +59,8 @@ if __name__ == "__main__":
         puzzle_name = Path(args.puzzle).stem
 
         for i, solution in enumerate(solutions):
-            output_path = output_dir / f"{puzzle_name}.solution.{i}.txt"
+            num_digits = len(str(len(solutions) - 1))
+            output_path = output_dir / f"{puzzle_name}.solution.{i:0{num_digits}d}.txt"
             with open(output_path, "w") as f:
                 f.write(pformat(solution))
 
