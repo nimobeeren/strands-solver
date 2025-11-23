@@ -1,4 +1,4 @@
-from common import Strand
+from common import Cover, Strand
 from coverer import Coverer
 
 
@@ -29,5 +29,5 @@ def test_cover_single_solution():
     solutions = coverer.cover(strands)
 
     # There should be only one solution
-    expected = frozenset([word, test, cool, easy])
+    expected = Cover([word, test, cool, easy])
     assert solutions == {expected}

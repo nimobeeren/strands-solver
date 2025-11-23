@@ -1,6 +1,6 @@
 import logging
 
-from common import Strand
+from common import Cover, Strand
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ class Coverer:
         self.num_cols = len(grid[0])
         self.num_cells = self.num_rows * self.num_cols
 
-    def cover(self, strands: set[Strand] | list[Strand]) -> set[frozenset[Strand]]:
+    def cover(self, strands: set[Strand] | list[Strand]) -> set[Cover]:
         """Finds ways to cover the entire grid with strands without overlapping."""
         # Convert to list for indexing
         strands_list = list(strands)
@@ -25,7 +25,7 @@ class Coverer:
         results = self._cover_rec()
 
         # Map indices back to Strands
-        all_covers = {frozenset(strands_list[i] for i in result) for result in results}
+        all_covers = {Cover(strands_list[i] for i in result) for result in results}
 
         # Remove covers with crossing strands
         valid_covers = set()
@@ -92,7 +92,7 @@ class Coverer:
 
         return solutions
 
-    def _cover_has_crossing(self, cover: frozenset[Strand]) -> bool:
+    def _cover_has_crossing(self, cover: Cover) -> bool:
         """Checks if any strands in the cover cross each other."""
         strands = list(cover)
         for i in range(len(strands)):

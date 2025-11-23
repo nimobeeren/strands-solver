@@ -1,7 +1,7 @@
 import logging
 from itertools import combinations
 
-from common import Strand
+from common import Cover, Solution, Strand
 from coverer import Coverer
 from finder import Finder
 
@@ -36,7 +36,7 @@ class Solver:
         self.num_rows = len(grid)
         self.num_cols = len(grid[0])
 
-    def solve(self) -> set[frozenset[Strand]]:
+    def solve(self) -> set[Solution]:
         """Solve the puzzle by finding all words in the grid and then finding all ways
         to exactly cover the grid with those words.
 
@@ -52,19 +52,28 @@ class Solver:
         covers = self.coverer.cover(words)
         logger.info(f"Found {len(covers)} covers")
 
+        logger.info("Finding spangrams")
         if self.num_words is not None:
-            logger.info("Trying to concatenate words")
-            covers = self._try_concatenate_words(covers, self.num_words)
-            logger.info(f"After concatenating words: {len(covers)} covers")
+            solutions = self._try_concatenate_words(covers, self.num_words)
+            logger.info(f"After concatenating words: {len(solutions)} solutions")
+        else:
+            solutions = set[Solution]()
+            for cover in covers:
+                for strand in cover:
+                    # For every spangram in the cover, add a solution with that spangram
+                    if strand.is_spangram(self.num_rows, self.num_cols):
+                        solution = Solution(
+                            spangram=(strand,),
+                            non_spangram_strands=frozenset(cover - {strand}),
+                        )
+                        solutions.add(solution)
+        logger.info(f"After finding spangrams: {len(solutions)} solutions")
 
-        covers = self._filter_covers_by_spangram(covers)
-        logger.info(f"After filtering by spangram: {len(covers)} covers")
-
-        return covers
+        return solutions
 
     def _try_concatenate_words(
-        self, covers: set[frozenset[Strand]], num_words: int
-    ) -> set[frozenset[Strand]]:
+        self, covers: set[Cover], num_words: int
+    ) -> set[Solution]:
         """For covers with too many words, attempts to reduce the count by concatenating
         words that can form a spangram.
 
@@ -97,7 +106,7 @@ class Solver:
                     duplicate_strings.add(word_string)
 
         # Find covers which have the correct number of words
-        covers_with_correct_num_words = set[frozenset[Strand]]()
+        solutions = set[Solution]()
 
         for cover in covers:
             # If cover doesn't have enough words, it can never be a valid solution, so
@@ -106,7 +115,14 @@ class Solver:
                 continue
             # If a cover has exactly enough words, it's trivially valid
             elif len(cover) == num_words:
-                covers_with_correct_num_words.add(cover)
+                for strand in cover:
+                    # For every spangram in the cover, add a solution with that spangram
+                    if strand.is_spangram(self.num_rows, self.num_cols):
+                        solution = Solution(
+                            spangram=(strand,),
+                            non_spangram_strands=frozenset(cover - {strand}),
+                        )
+                        solutions.add(solution)
             # If a cover has too many words, we may be able to reduce the number by
             # concatenating some words (note: only the spangram can be a concatenation)
             elif len(cover) > num_words:
@@ -150,10 +166,13 @@ class Solver:
                         ):
                             concatenated = valid_order[0].concatenate(*valid_order[1:])
                             if concatenated.is_spangram(self.num_rows, self.num_cols):
-                                new_cover = frozenset(
-                                    (cover - set(words_to_concat)) | {concatenated}
+                                solution = Solution(
+                                    spangram=valid_order,
+                                    non_spangram_strands=frozenset(
+                                        cover - set(words_to_concat)
+                                    ),
                                 )
-                                covers_with_correct_num_words.add(new_cover)
+                                solutions.add(solution)
                 else:
                     # Only try combinations that include all duplicates
                     non_duplicates = [
@@ -171,10 +190,13 @@ class Solver:
                         ):
                             concatenated = valid_order[0].concatenate(*valid_order[1:])
                             if concatenated.is_spangram(self.num_rows, self.num_cols):
-                                new_cover = frozenset(
-                                    (cover - set(words_to_concat)) | {concatenated}
+                                solution = Solution(
+                                    spangram=valid_order,
+                                    non_spangram_strands=frozenset(
+                                        cover - set(words_to_concat)
+                                    ),
                                 )
-                                covers_with_correct_num_words.add(new_cover)
+                                solutions.add(solution)
                     else:
                         # Try combinations of non-duplicates with all duplicates
                         for non_dup_combo in combinations(
@@ -190,12 +212,15 @@ class Solver:
                                 if concatenated.is_spangram(
                                     self.num_rows, self.num_cols
                                 ):
-                                    new_cover = frozenset(
-                                        (cover - set(words_to_concat)) | {concatenated}
+                                    solution = Solution(
+                                        spangram=valid_order,
+                                        non_spangram_strands=frozenset(
+                                            cover - set(words_to_concat)
+                                        ),
                                     )
-                                    covers_with_correct_num_words.add(new_cover)
+                                    solutions.add(solution)
 
-        return covers_with_correct_num_words
+        return solutions
 
     def _find_valid_orderings(
         self, words: tuple[Strand, ...], adjacency: dict[Strand, list[Strand]]
@@ -245,17 +270,3 @@ class Solver:
                     result,
                 )
                 current_chain.pop()  # Backtrack
-
-    def _filter_covers_by_spangram(
-        self, covers: set[frozenset[Strand]]
-    ) -> set[frozenset[Strand]]:
-        """Filter covers to only include those that contain at least one spangram."""
-        covers_with_spangram = set[frozenset[Strand]]()
-        for cover in covers:
-            if any(
-                strand
-                for strand in cover
-                if strand.is_spangram(self.num_rows, self.num_cols)
-            ):
-                covers_with_spangram.add(cover)
-        return covers_with_spangram

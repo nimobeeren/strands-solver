@@ -1,10 +1,12 @@
-from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import Literal
 
 from rich.console import Console
 from rich.text import Text
 
-from common import Strand
+from common import Solution, Strand
+
+StrandType = Literal["spangram", "other"]
 
 
 @dataclass
@@ -15,12 +17,15 @@ class RenderCell:
     """The character to display."""
     covered: bool = False
     """Whether this cell is part of a strand."""
-    strand_indices: list[int] | None = None
-    """The indices of strands that use this cell (for letters or connectors)."""
+    strand_type: StrandType = "other"
+    """The type of strand that uses this cell."""
 
 
 def _get_letter_cell(
-    x: int, y: int, grid: list[list[str]], pos_to_strand: dict[tuple[int, int], int]
+    x: int,
+    y: int,
+    grid: list[list[str]],
+    pos_to_type: dict[tuple[int, int], StrandType],
 ) -> RenderCell:
     """Gets a letter cell from the original grid.
 
@@ -28,27 +33,27 @@ def _get_letter_cell(
         x: Column index in the original grid
         y: Row index in the original grid
         grid: The original letter grid
-        pos_to_strand: Mapping from position to strand index
+        pos_to_type: Mapping from position to strand type
 
     Returns:
         A RenderCell containing the letter with appropriate type
     """
     pos = (x, y)
     letter = grid[y][x]
-    strand_idx = pos_to_strand.get(pos)
-    is_covered = strand_idx is not None
+    strand_type = pos_to_type.get(pos, "other")
+    is_covered = pos in pos_to_type
 
     return RenderCell(
         content=letter,
         covered=is_covered,
-        strand_indices=[strand_idx] if strand_idx is not None else None,
+        strand_type=strand_type,
     )
 
 
 def _get_connector_cell(
     render_x: int,
     render_y: int,
-    connections: dict[tuple[tuple[int, int], ...], list[int]],
+    connections: dict[tuple[tuple[int, int], ...], StrandType],
 ) -> RenderCell:
     """Determines the connector type for a space between letters.
 
@@ -71,7 +76,11 @@ def _get_connector_cell(
         conn_key = tuple(sorted([pos_left, pos_right]))
 
         if conn_key in connections:
-            return RenderCell(content="───", strand_indices=connections[conn_key])
+            return RenderCell(
+                content="───",
+                covered=True,
+                strand_type=connections[conn_key],
+            )
         else:
             return RenderCell(content=" ")
 
@@ -86,7 +95,11 @@ def _get_connector_cell(
         conn_key = tuple(sorted([pos_top, pos_bottom]))
 
         if conn_key in connections:
-            return RenderCell(content="│", strand_indices=connections[conn_key])
+            return RenderCell(
+                content="│",
+                covered=True,
+                strand_type=connections[conn_key],
+            )
         else:
             return RenderCell(content=" ")
 
@@ -110,20 +123,26 @@ def _get_connector_cell(
         has_down_left = conn_key_down_left in connections
 
         if has_down_right and has_down_left:
-            # Both diagonals cross
-            all_strands = (
-                connections[conn_key_down_right] + connections[conn_key_down_left]
+            strand_type = (
+                "spangram"
+                if connections[conn_key_down_right] == "spangram"
+                or connections[conn_key_down_left] == "spangram"
+                else "other"
             )
-            return RenderCell(content="╳", strand_indices=all_strands)
+            return RenderCell(content="╳", covered=True, strand_type=strand_type)
         elif has_down_right:
             # Down-right diagonal
             return RenderCell(
-                content="▔╲▁", strand_indices=connections[conn_key_down_right]
+                content="▔╲▁",
+                covered=True,
+                strand_type=connections[conn_key_down_right],
             )
         elif has_down_left:
             # Down-left diagonal
             return RenderCell(
-                content="▁╱▔", strand_indices=connections[conn_key_down_left]
+                content="▁╱▔",
+                covered=True,
+                strand_type=connections[conn_key_down_left],
             )
         else:
             return RenderCell(content=" ")
@@ -133,7 +152,7 @@ def _get_connector_cell(
 
 
 def _build_render_grid(
-    grid: list[list[str]], strands: Iterable[Strand]
+    grid: list[list[str]], solution: Solution | None
 ) -> list[list[RenderCell]]:
     """Builds the render grid containing both letters and connectors.
 
@@ -145,7 +164,7 @@ def _build_render_grid(
 
     Args:
         grid: The original letter grid
-        strands: List of strands to display
+        solution: The solution to render, if any
 
     Returns:
         The render grid as a 2D list of RenderCell objects
@@ -153,25 +172,33 @@ def _build_render_grid(
     height = len(grid)
     width = len(grid[0]) if height > 0 else 0
 
-    # Create a mapping from position to strand index
-    pos_to_strand = {}
-    for idx, strand in enumerate(strands):
-        for pos in strand.positions:
-            pos_to_strand[pos] = idx
+    # Create mappings from positions/connections to strand types
+    pos_to_type: dict[tuple[int, int], StrandType] = {}
+    connections: dict[tuple[tuple[int, int], ...], StrandType] = {}
 
-    # Create a mapping for connections between positions
-    # Key: ((x1,y1), (x2,y2)) tuple with sorted positions
-    # Value: list of strand indices that use this connection
-    connections: dict[tuple[tuple[int, int], ...], list[int]] = {}
-    for idx, strand in enumerate(strands):
-        for i in range(len(strand.positions) - 1):
-            pos1 = strand.positions[i]
-            pos2 = strand.positions[i + 1]
-            # Sort positions to normalize the connection key
-            key = tuple(sorted([pos1, pos2]))
-            if key not in connections:
-                connections[key] = []
-            connections[key].append(idx)
+    if solution:
+        spangram_strands: tuple[Strand, ...] = ()
+        if solution.spangram:
+            spangram_strand = solution.spangram[0]
+            if len(solution.spangram) > 1:
+                spangram_strand = spangram_strand.concatenate(*solution.spangram[1:])
+            spangram_strands = (spangram_strand,)
+        other_strands = tuple(solution.non_spangram_strands)
+
+        def _record_strands(
+            strands: tuple[Strand, ...], strand_type: StrandType
+        ) -> None:
+            for strand in strands:
+                for pos in strand.positions:
+                    pos_to_type[pos] = strand_type
+                for i in range(len(strand.positions) - 1):
+                    pos1 = strand.positions[i]
+                    pos2 = strand.positions[i + 1]
+                    key = tuple(sorted([pos1, pos2]))
+                    connections[key] = strand_type
+
+        _record_strands(spangram_strands, "spangram")
+        _record_strands(other_strands, "other")
 
     # Build the render grid
     render_height = 2 * height - 1
@@ -185,7 +212,7 @@ def _build_render_grid(
             if render_y % 2 == 0 and render_x % 2 == 0:
                 grid_x = render_x // 2
                 grid_y = render_y // 2
-                cell = _get_letter_cell(grid_x, grid_y, grid, pos_to_strand)
+                cell = _get_letter_cell(grid_x, grid_y, grid, pos_to_type)
             # Any other position: connector cell
             else:
                 cell = _get_connector_cell(render_x, render_y, connections)
@@ -202,29 +229,25 @@ def _render_grid(data: list[list[RenderCell]]) -> None:
     Args:
         render_grid: The render grid to display
     """
-    # Define colors for strands (cycling through if more strands than colors)
-    colors = ["cyan", "magenta", "yellow", "green", "blue", "red"]
-
     console = Console()
     for row in data:
         line = Text()
         for cell in row:
             if cell.content.isalpha():
-                if cell.covered and cell.strand_indices:
-                    # Use the color for this strand
-                    color = colors[cell.strand_indices[0] % len(colors)]
-                    style = f"bold on {color}"
+                if cell.covered:
+                    if cell.strand_type == "spangram":
+                        style = "bold on yellow"
+                    else:
+                        style = "bold on cyan"
                 else:
                     style = "white"
             else:
                 # Connector
-                if cell.content == "╳":
-                    # X connector is always white
-                    style = "white"
-                elif cell.strand_indices:
-                    # Use the color of the strand
-                    color = colors[cell.strand_indices[0] % len(colors)]
-                    style = color
+                if cell.covered and cell.content.strip():
+                    if cell.strand_type == "spangram":
+                        style = "yellow"
+                    else:
+                        style = "cyan"
                 else:
                     # Empty space
                     style = "white"
@@ -233,9 +256,9 @@ def _render_grid(data: list[list[RenderCell]]) -> None:
         console.print(line)
 
 
-def draw(grid: list[list[str]], strands: Iterable[Strand] = []) -> None:
-    """Draws a puzzle nicely in the console."""
-    render_grid_data = _build_render_grid(grid, strands)
+def draw(grid: list[list[str]], solution: Solution | None = None) -> None:
+    """Draws a puzzle and optionally overlays a solution."""
+    render_grid_data = _build_render_grid(grid, solution)
     _render_grid(render_grid_data)
 
 
@@ -247,23 +270,32 @@ if __name__ == "__main__":
         ["M", "N", "O", "P"],
     ]
     print("Test 1: Crossing diagonals")
-    strands1 = [
-        Strand(positions=((0, 0), (1, 1), (2, 2), (3, 3)), string="AFKP"),
-        Strand(positions=((0, 3), (1, 2), (2, 1), (3, 0)), string="DGJM"),
-    ]
-    draw(grid, strands1)
+    solution1 = Solution(
+        spangram=(Strand(positions=((0, 0), (1, 1), (2, 2), (3, 3)), string="AFKP"),),
+        non_spangram_strands=frozenset(
+            (Strand(positions=((0, 3), (1, 2), (2, 1), (3, 0)), string="DGJM"),)
+        ),
+    )
+    draw(grid, solution1)
 
     print("\nTest 2: Horizontal and vertical paths")
-    strands2 = [
-        Strand(positions=((0, 0), (0, 1), (0, 2), (0, 3)), string="ABCD"),
-        Strand(positions=((3, 2), (2, 2), (2, 3), (3, 3)), string="OKLP"),
-    ]
-    draw(grid, strands2)
+
+    solution2 = Solution(
+        spangram=(Strand(positions=((0, 0), (0, 1), (0, 2), (0, 3)), string="ABCD"),),
+        non_spangram_strands=frozenset(
+            (Strand(positions=((3, 2), (2, 2), (2, 3), (3, 3)), string="OKLP"),)
+        ),
+    )
+    draw(grid, solution2)
 
     print("\nTest 3: Mixed directions")
-    strands3 = [
-        Strand(positions=((0, 0), (1, 0), (2, 1), (2, 2)), string="AEJK"),
-        Strand(positions=((0, 3), (0, 2), (1, 2), (1, 3)), string="DCGH"),
-        Strand(positions=((3, 0), (3, 1), (3, 2), (3, 3)), string="MNOP"),
-    ]
-    draw(grid, strands3)
+    solution3 = Solution(
+        spangram=(Strand(positions=((0, 0), (1, 0), (2, 1), (2, 2)), string="AEJK"),),
+        non_spangram_strands=frozenset(
+            (
+                Strand(positions=((0, 3), (0, 2), (1, 2), (1, 3)), string="DCGH"),
+                Strand(positions=((3, 0), (3, 1), (3, 2), (3, 3)), string="MNOP"),
+            )
+        ),
+    )
+    draw(grid, solution3)

@@ -45,8 +45,12 @@ if __name__ == "__main__":
         logging.info("First solution:\n")
         draw(grid, solutions[0])
         print()
-        for strand in solutions[0]:
-            print(f"- {strand.string}")
+        
+        print(
+            f"🟡 {' + '.join(strand.string for strand in solutions[0].spangram)} (spangram)"
+        )
+        for strand in solutions[0].non_spangram_strands:
+            print(f"🔵 {strand.string}")
         print()
 
         # Write each solution to its own file in out/ directory
@@ -64,4 +68,6 @@ if __name__ == "__main__":
             with open(output_path, "w") as f:
                 f.write(pformat(solution))
 
-        logging.info(f"All {len(solutions)} solutions written to '{output_dir}' directory")
+        logging.info(
+            f"All {len(solutions)} solutions written to '{output_dir}' directory"
+        )

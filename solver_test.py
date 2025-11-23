@@ -1,7 +1,7 @@
 from coverer import Coverer
 from finder import Finder
 from solver import Solver
-from common import Strand
+from common import Solution, Strand
 
 
 def test_solve():
@@ -22,14 +22,16 @@ def test_solve():
     assert len(solutions) >= 1
 
     # The expected solution should be in the solutions set
-    expected = frozenset(
-        [
-            Strand(positions=((0, 0), (1, 0), (2, 0), (3, 0)), string="EASY"),
-            Strand(positions=((4, 0), (4, 1), (4, 2), (4, 3)), string="SPAN"),
-            Strand(positions=((0, 1), (1, 1), (2, 1), (3, 1)), string="COOL"),
-            Strand(positions=((0, 2), (1, 2), (2, 2), (3, 2)), string="TEST"),
-            Strand(positions=((0, 3), (1, 3), (2, 3), (3, 3)), string="WORD"),
-        ]
+    expected = Solution(
+        spangram=(Strand(positions=((4, 0), (4, 1), (4, 2), (4, 3)), string="SPAN"),),
+        non_spangram_strands=frozenset(
+            (
+                Strand(positions=((0, 0), (1, 0), (2, 0), (3, 0)), string="EASY"),
+                Strand(positions=((0, 1), (1, 1), (2, 1), (3, 1)), string="COOL"),
+                Strand(positions=((0, 2), (1, 2), (2, 2), (3, 2)), string="TEST"),
+                Strand(positions=((0, 3), (1, 3), (2, 3), (3, 3)), string="WORD"),
+            )
+        ),
     )
     assert expected in solutions
 
@@ -52,14 +54,16 @@ def test_solve_no_num_words():
     assert len(solutions) >= 1
 
     # The expected solution should be in the solutions set
-    expected = frozenset(
-        [
-            Strand(positions=((0, 0), (1, 0), (2, 0), (3, 0)), string="EASY"),
-            Strand(positions=((4, 0), (4, 1), (4, 2), (4, 3)), string="SPAN"),
-            Strand(positions=((0, 1), (1, 1), (2, 1), (3, 1)), string="COOL"),
-            Strand(positions=((0, 2), (1, 2), (2, 2), (3, 2)), string="TEST"),
-            Strand(positions=((0, 3), (1, 3), (2, 3), (3, 3)), string="WORD"),
-        ]
+    expected = Solution(
+        spangram=(Strand(positions=((4, 0), (4, 1), (4, 2), (4, 3)), string="SPAN"),),
+        non_spangram_strands=frozenset(
+            (
+                Strand(positions=((0, 0), (1, 0), (2, 0), (3, 0)), string="EASY"),
+                Strand(positions=((0, 1), (1, 1), (2, 1), (3, 1)), string="COOL"),
+                Strand(positions=((0, 2), (1, 2), (2, 2), (3, 2)), string="TEST"),
+                Strand(positions=((0, 3), (1, 3), (2, 3), (3, 3)), string="WORD"),
+            )
+        ),
     )
     assert expected in solutions
 
@@ -79,8 +83,8 @@ def test_solve_single_spangram():
     solutions = solver.solve()
 
     expected = {
-        frozenset(
-            [
+        Solution(
+            spangram=(
                 Strand(
                     positions=(
                         (0, 0),
@@ -96,15 +100,19 @@ def test_solve_single_spangram():
                     ),
                     string="ABCDEFGHIJ",
                 ),
-                Strand(
-                    positions=((5, 0), (6, 0), (7, 0), (8, 0)),
-                    string="KLMN",
-                ),
-                Strand(
-                    positions=((0, 1), (1, 1), (2, 1), (3, 1)),
-                    string="OPQR",
-                ),
-            ]
+            ),
+            non_spangram_strands=frozenset(
+                (
+                    Strand(
+                        positions=((5, 0), (6, 0), (7, 0), (8, 0)),
+                        string="KLMN",
+                    ),
+                    Strand(
+                        positions=((0, 1), (1, 1), (2, 1), (3, 1)),
+                        string="OPQR",
+                    ),
+                )
+            ),
         )
     }
 
@@ -128,48 +136,57 @@ def test_solve_concatenated_spangram():
     solutions = solver.solve()
 
     expected = {
-        frozenset(
-            [
-                Strand(
-                    positions=(
-                        (0, 0),
-                        (1, 0),
-                        (2, 0),
-                        (3, 0),
-                        (4, 0),
-                        (5, 0),
-                        (6, 0),
-                        (7, 0),
-                    ),
-                    string="ABCDEFGH",
-                ),
+        Solution(
+            spangram=(
                 Strand(
                     positions=(
                         (0, 1),
                         (1, 1),
                         (2, 1),
                         (3, 1),
+                    ),
+                    string="IJKL",
+                ),
+                Strand(
+                    positions=(
                         (4, 1),
                         (5, 1),
                         (6, 1),
                         (7, 1),
                     ),
-                    string="IJKLMNOP",
+                    string="MNOP",
                 ),
-                Strand(
-                    positions=(
-                        (0, 2),
-                        (1, 2),
-                        (2, 2),
-                        (3, 2),
-                        (4, 2),
-                        (5, 2),
-                        (6, 2),
-                        (7, 2),
+            ),
+            non_spangram_strands=frozenset(
+                (
+                    Strand(
+                        positions=(
+                            (0, 0),
+                            (1, 0),
+                            (2, 0),
+                            (3, 0),
+                            (4, 0),
+                            (5, 0),
+                            (6, 0),
+                            (7, 0),
+                        ),
+                        string="ABCDEFGH",
                     ),
-                    string="QRSTUVWX",
-                ),
-            ]
+                    Strand(
+                        positions=(
+                            (0, 2),
+                            (1, 2),
+                            (2, 2),
+                            (3, 2),
+                            (4, 2),
+                            (5, 2),
+                            (6, 2),
+                            (7, 2),
+                        ),
+                        string="QRSTUVWX",
+                    ),
+                )
+            ),
         )
     }
     assert solutions == expected
@@ -207,26 +224,37 @@ def test_solve_three_word_spangram():
     solutions = solver.solve()
 
     expected = {
-        frozenset(
-            [
+        Solution(
+            spangram=(
                 Strand(
                     positions=(
                         (0, 0),
                         (1, 0),
                         (2, 0),
                         (3, 0),
+                    ),
+                    string="ABCD",
+                ),
+                Strand(
+                    positions=(
                         (4, 0),
                         (5, 0),
                         (6, 0),
                         (7, 0),
+                    ),
+                    string="EFGH",
+                ),
+                Strand(
+                    positions=(
                         (8, 0),
                         (9, 0),
                         (10, 0),
                         (11, 0),
                     ),
-                    string="ABCDEFGHIJKL",
+                    string="IJKL",
                 ),
-            ]
+            ),
+            non_spangram_strands=frozenset(),
         )
     }
 
@@ -248,30 +276,46 @@ def test_solve_four_word_spangram():
     solutions = solver.solve()
 
     expected = {
-        frozenset(
-            [
+        Solution(
+            spangram=(
                 Strand(
                     positions=(
                         (0, 0),
                         (1, 0),
                         (2, 0),
                         (3, 0),
+                    ),
+                    string="ABCD",
+                ),
+                Strand(
+                    positions=(
                         (4, 0),
                         (5, 0),
                         (6, 0),
                         (7, 0),
+                    ),
+                    string="EFGH",
+                ),
+                Strand(
+                    positions=(
                         (8, 0),
                         (9, 0),
                         (10, 0),
                         (11, 0),
+                    ),
+                    string="IJKL",
+                ),
+                Strand(
+                    positions=(
                         (12, 0),
                         (13, 0),
                         (14, 0),
                         (15, 0),
                     ),
-                    string="ABCDEFGHIJKLMNOP",
+                    string="MNOP",
                 ),
-            ]
+            ),
+            non_spangram_strands=frozenset(),
         )
     }
 
@@ -292,13 +336,18 @@ def test_solve_spangram_with_duplicate_word():
     solver = Solver(grid, finder=finder, coverer=coverer, num_words=2)
     solutions = solver.solve()
 
-    expected = frozenset(
-        {
-            # Spangram consisting of A + AC (A is a duplicate)
-            Strand(positions=((0, 0), (0, 1), (1, 1)), string="AAC"),
-            # Regular word B
-            Strand(positions=((1, 0),), string="B"),
-        }
+    expected = Solution(
+        # Spangram consisting of A + AC (A is a duplicate)
+        spangram=(
+            Strand(positions=((0, 0),), string="A"),
+            Strand(positions=((0, 1), (1, 1)), string="AC"),
+        ),
+        non_spangram_strands=frozenset(
+            (
+                # Regular word B
+                Strand(positions=((1, 0),), string="B"),
+            )
+        ),
     )
 
     assert expected in solutions
