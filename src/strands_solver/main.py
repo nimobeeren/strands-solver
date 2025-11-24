@@ -1,7 +1,6 @@
 import argparse
 import json
 import logging
-import shutil
 from pathlib import Path
 from pprint import pformat
 
@@ -22,6 +21,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "puzzle", type=str, help="Path to a JSON file containing a puzzle"
+    )
+    parser.add_argument(
+        "-o", "--output-dir", type=Path, help="Directory to write all solutions to"
     )
     args = parser.parse_args()
 
@@ -55,24 +57,24 @@ def main():
             print(f"🔵 {strand.string}")
         print()
 
-        # Write each solution to its own file in out/ directory
-        logging.info("Writing solutions to disk")
-        output_dir = Path(__file__).parent.parent.parent / "out"
-        if output_dir.exists():
-            shutil.rmtree(output_dir)
-        output_dir.mkdir()
+        output_dir: Path | None = args.output_dir
+        if output_dir:
+            logging.info("Writing solutions to disk")
+            output_dir.mkdir(exist_ok=True)
+            puzzle_name = Path(args.puzzle).stem
 
-        puzzle_name = Path(args.puzzle).stem
+            # Write each solution to its own file in output directory
+            for i, solution in enumerate(solutions):
+                num_digits = len(str(len(solutions) - 1))
+                output_path = (
+                    output_dir / f"{puzzle_name}.solution.{i:0{num_digits}d}.txt"
+                )
+                with open(output_path, "w") as f:
+                    f.write(pformat(solution))
 
-        for i, solution in enumerate(solutions):
-            num_digits = len(str(len(solutions) - 1))
-            output_path = output_dir / f"{puzzle_name}.solution.{i:0{num_digits}d}.txt"
-            with open(output_path, "w") as f:
-                f.write(pformat(solution))
-
-        logging.info(
-            f"All {len(solutions)} solutions written to '{output_dir}' directory"
-        )
+            logging.info(
+                f"All {len(solutions)} solutions written to directory: '{output_dir}'"
+            )
 
 
 if __name__ == "__main__":
