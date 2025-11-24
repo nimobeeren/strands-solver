@@ -41,7 +41,7 @@ uv run strands-solver path_to_puzzle.json
 uv run pytest
 ```
 
-The OCR tests are a bit slow so you if you don't need it you can skip it with `--ignore ocr_test.py`
+The OCR tests are a bit slow so you if you don't need them you can skip them with `--ignore tests/ocr_test.py`
 
 ### Running the type checker
 

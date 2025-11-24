@@ -37,7 +37,7 @@ def load_dictionary():
     # Add valid single-letter words
     words |= {"A", "I"}
 
-    # Add single-letter elisions (of -> 'o, and -> 'n)
+    # Add single-letter elisions (of -> 'o as in "twelve o' clock"; and -> 'n as in "wait 'n see")
     words |= {"O", "N"}
 
     return words
