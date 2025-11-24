@@ -87,8 +87,6 @@ class Solver:
         can be formed in multiple positions in the grid), since valid solutions must
         concatenate all duplicates.
         """
-        # TODO: concatenation still allows crossing strands at the word border, but this
-        # doesn't happen in real solutions
 
         # Identify duplicate words across all covers
         all_strands = set()
@@ -170,7 +168,12 @@ class Solver:
                             words_to_concat, adjacency
                         ):
                             concatenated = valid_order[0].concatenate(*valid_order[1:])
-                            if concatenated.is_spangram(self.num_rows, self.num_cols):
+                            if (
+                                concatenated.is_spangram(self.num_rows, self.num_cols)
+                                # The concatenated strand may cross itself at the word
+                                # border, but this doesn't happen in real solutions
+                                and not concatenated.has_self_crossing()
+                            ):
                                 solution = Solution(
                                     spangram=valid_order,
                                     non_spangram_strands=frozenset(
