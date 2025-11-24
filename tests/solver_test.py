@@ -2,6 +2,7 @@ from strands_solver.coverer import Coverer
 from strands_solver.finder import Finder
 from strands_solver.solver import Solver
 from strands_solver.common import Solution, Strand
+from strands_solver.spangram_finder import SpangramFinder
 
 
 def test_solve():
@@ -15,39 +16,8 @@ def test_solve():
 
     finder = Finder(grid)
     coverer = Coverer(grid)
-    solver = Solver(grid, finder=finder, coverer=coverer, num_words=5)
-    solutions = solver.solve()
-
-    # Should find at least one solution
-    assert len(solutions) >= 1
-
-    # The expected solution should be in the solutions set
-    expected = Solution(
-        spangram=(Strand(positions=((4, 0), (4, 1), (4, 2), (4, 3)), string="SPAN"),),
-        non_spangram_strands=frozenset(
-            (
-                Strand(positions=((0, 0), (1, 0), (2, 0), (3, 0)), string="EASY"),
-                Strand(positions=((0, 1), (1, 1), (2, 1), (3, 1)), string="COOL"),
-                Strand(positions=((0, 2), (1, 2), (2, 2), (3, 2)), string="TEST"),
-                Strand(positions=((0, 3), (1, 3), (2, 3), (3, 3)), string="WORD"),
-            )
-        ),
-    )
-    assert expected in solutions
-
-
-def test_solve_no_num_words():
-    # Simple grid where each word appears only once
-    grid = [
-        ["E", "A", "S", "Y", "S"],
-        ["C", "O", "O", "L", "P"],
-        ["T", "E", "S", "T", "A"],
-        ["W", "O", "R", "D", "N"],
-    ]
-
-    finder = Finder(grid)
-    coverer = Coverer(grid)
-    solver = Solver(grid, finder=finder, coverer=coverer)  # no num_words here
+    spangram_finder = SpangramFinder(grid, num_words=5)
+    solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
 
     # Should find at least one solution
@@ -79,7 +49,8 @@ def test_solve_single_spangram():
 
     finder = Finder(grid, dictionary={"ABCDEFGHIJ", "KLMN", "OPQR"})
     coverer = Coverer(grid)
-    solver = Solver(grid, finder=finder, coverer=coverer, num_words=3)
+    spangram_finder = SpangramFinder(grid, num_words=3)
+    solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
 
     expected = {
@@ -132,7 +103,8 @@ def test_solve_concatenated_spangram():
 
     finder = Finder(grid, dictionary={"ABCDEFGH", "IJKL", "MNOP", "QRSTUVWX"})
     coverer = Coverer(grid)
-    solver = Solver(grid, finder=finder, coverer=coverer, num_words=3)
+    spangram_finder = SpangramFinder(grid, num_words=3)
+    solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
 
     expected = {
@@ -201,7 +173,8 @@ def test_solve_cant_concatenate_if_not_spangram():
 
     finder = Finder(grid, dictionary={"ABCD", "EFGH", "IJKL", "MNOPQRST"})
     coverer = Coverer(grid)
-    solver = Solver(grid, finder=finder, coverer=coverer, num_words=3)
+    spangram_finder = SpangramFinder(grid, num_words=3)
+    solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
 
     # This puzzle is solvable with 4 words: {ABCD, EFGH, IJKL, MNOPQRST}
@@ -220,7 +193,8 @@ def test_solve_three_word_spangram():
 
     finder = Finder(grid, dictionary={"ABCD", "EFGH", "IJKL"})
     coverer = Coverer(grid)
-    solver = Solver(grid, finder=finder, coverer=coverer, num_words=1)
+    spangram_finder = SpangramFinder(grid, num_words=1)
+    solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
 
     expected = {
@@ -272,7 +246,8 @@ def test_solve_four_word_spangram():
 
     finder = Finder(grid, dictionary={"ABCD", "EFGH", "IJKL", "MNOP"})
     coverer = Coverer(grid)
-    solver = Solver(grid, finder=finder, coverer=coverer, num_words=1)
+    spangram_finder = SpangramFinder(grid, num_words=1)
+    solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
 
     expected = {
@@ -333,7 +308,8 @@ def test_solve_spangram_with_duplicate_word():
 
     finder = Finder(grid, dictionary={"A", "B", "AC"}, min_length=1)
     coverer = Coverer(grid)
-    solver = Solver(grid, finder=finder, coverer=coverer, num_words=2)
+    spangram_finder = SpangramFinder(grid, num_words=2)
+    solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
 
     expected = Solution(
@@ -364,7 +340,8 @@ def test_solve_no_solutions_crossing():
 
     finder = Finder(grid, dictionary={"AB", "CD"}, min_length=2)
     coverer = Coverer(grid)
-    solver = Solver(grid, finder=finder, coverer=coverer, num_words=2)
+    spangram_finder = SpangramFinder(grid, num_words=2)
+    solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
 
     assert len(solutions) == 0
@@ -381,7 +358,8 @@ def test_solve_no_solutions_self_crossing():
 
     finder = Finder(grid, dictionary={"ABCD"})
     coverer = Coverer(grid)
-    solver = Solver(grid, finder=finder, coverer=coverer, num_words=1)
+    spangram_finder = SpangramFinder(grid, num_words=1)
+    solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
 
     assert len(solutions) == 0
@@ -394,8 +372,7 @@ def solve_no_solutions_spangram_max_words():
 
     finder = Finder(grid, dictionary={"A", "B", "C", "D"}, min_length=1)
     coverer = Coverer(grid)
-    solver = Solver(
-        grid, finder=finder, coverer=coverer, num_words=1, spangram_max_words=3
-    )
+    spangram_finder = SpangramFinder(grid, num_words=1)
+    solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
     assert len(solutions) == 0

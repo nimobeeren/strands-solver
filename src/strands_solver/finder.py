@@ -18,6 +18,12 @@ class Finder:
         dictionary: set[str] | None = None,
         min_length: int | None = 4,
     ) -> None:
+        """
+        Parameters:
+        - grid: the grid of the puzzle
+        - dictionary: the dictionary of words (or default dictionary if None)
+        - min_length: the minimum length of a word
+        """
         self.grid = grid
         self.num_rows = len(grid)
         self.num_cols = len(grid[0])

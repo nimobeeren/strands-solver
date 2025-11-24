@@ -9,6 +9,7 @@ from .coverer import Coverer
 from .draw import draw
 from .finder import Finder
 from .solver import Solver
+from .spangram_finder import SpangramFinder
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,7 +39,8 @@ def main():
 
     finder = Finder(grid)
     coverer = Coverer(grid)
-    solver = Solver(grid, finder=finder, coverer=coverer, num_words=num_words)
+    spangram_finder = SpangramFinder(grid, num_words=num_words)
+    solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = list(solver.solve())
 
     if solutions:
