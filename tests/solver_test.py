@@ -365,14 +365,39 @@ def test_solve_no_solutions_self_crossing():
     assert len(solutions) == 0
 
 
-def solve_no_solutions_spangram_max_words():
+def test_solve_no_solutions_self_crossing_spangram():
+    grid = [
+        ["H", "G", "F", "S"],
+        ["I", "D", "E", "T"],
+        ["C", "J", "K", "L"],
+        ["B", "Q", "R", "M"],
+        ["A", "P", "O", "N"],
+    ]
+
+    # {ABC, DEFGHI, JKLMNOPQR, ST} is a valid cover without any (self-)crossings
+    # and there is only one solution with exactly 2 words, which is:
+    # - ABC + DEFGHI + JKLMNOPQR (spangram)
+    # - ST
+    # but this would require a self-crossing in the spangram
+    # (segments CD and IJ would cross)
+    # so there are no valid solutions (unless we allow self-crossing spangrams)
+
+    finder = Finder(grid, dictionary={"ABC", "DEFGHI", "JKLMNOPQR", "ST"}, min_length=2)
+    coverer = Coverer(grid)
+    spangram_finder = SpangramFinder(grid, num_words=2)
+    solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
+    solutions = solver.solve()
+    assert len(solutions) == 0
+
+
+def test_solve_no_solutions_spangram_max_words():
     """Test that we don't find solutions where the spangram consists of more than
     spangram_max_words words."""
     grid = [["A", "B", "C", "D"]]
 
     finder = Finder(grid, dictionary={"A", "B", "C", "D"}, min_length=1)
     coverer = Coverer(grid)
-    spangram_finder = SpangramFinder(grid, num_words=1)
+    spangram_finder = SpangramFinder(grid, num_words=1, spangram_max_words=3)
     solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
     assert len(solutions) == 0

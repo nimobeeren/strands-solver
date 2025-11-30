@@ -151,7 +151,12 @@ class SpangramFinder:
                             words_to_concat, adjacency
                         ):
                             concatenated = ordering[0].concatenate(*ordering[1:])
-                            if concatenated.is_spangram(self.num_rows, self.num_cols):
+                            if (
+                                concatenated.is_spangram(self.num_rows, self.num_cols)
+                                # The concatenated strand may cross itself at the word
+                                # border, but this doesn't happen in real solutions
+                                and not concatenated.has_self_crossing()
+                            ):
                                 solution = Solution(
                                     spangram=ordering,
                                     non_spangram_strands=frozenset(
@@ -169,8 +174,14 @@ class SpangramFinder:
                                 words_to_concat, adjacency
                             ):
                                 concatenated = ordering[0].concatenate(*ordering[1:])
-                                if concatenated.is_spangram(
-                                    self.num_rows, self.num_cols
+                                if (
+                                    concatenated.is_spangram(
+                                        self.num_rows, self.num_cols
+                                    )
+                                    # The concatenated strand may cross itself at the
+                                    # word border, but this doesn't happen in
+                                    # real solutions
+                                    and not concatenated.has_self_crossing()
                                 ):
                                     solution = Solution(
                                         spangram=ordering,
