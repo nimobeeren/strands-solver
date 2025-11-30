@@ -38,6 +38,7 @@ def load_dictionary():
     words |= {"A", "I"}
 
     # Add single-letter elisions (of -> 'o as in "twelve o' clock"; and -> 'n as in "wait 'n see")
-    words |= {"O", "N"}
+    # Not sure if these ever appear in real solutions
+    # words |= {"O", "N"}
 
     return words
