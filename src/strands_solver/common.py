@@ -2,6 +2,15 @@ from dataclasses import dataclass
 from enum import Enum
 
 
+# TODO: reflect NY Times API structure
+@dataclass
+class Puzzle:
+    name: str
+    theme: str
+    grid: list[list[str]]
+    num_words: int
+
+
 class Direction(Enum):
     RIGHT = (1, 0)
     DOWN_RIGHT = (1, 1)

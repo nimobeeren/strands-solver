@@ -10,21 +10,25 @@ The dictionary will be automatically downloaded on first use.
 
 ## Usage
 
-1. Take a screenshot of the puzzle.
-
-2. Recognize the puzzle grid and theme and save them to a JSON file:
+To solve today's puzzle:
 
 ```bash
-uv run strands-ocr path_to_puzzle.jpeg path_to_puzzle.json
+uv run strands-solver today
 ```
 
-Note: the defaults are tuned for iPhone 15 screenshots. All spatial parameters are relative to image height (0.0=top, 1.0=bottom), making them resolution-independent. For other devices or layouts, you may need to adjust the `--tile-size`, `--origin-x`, and `--origin-y` parameters. Run `uv run strands-ocr --help` for more information.
+To solve a puzzle from a given date:
 
-3. Run the solver:
+```bash
+uv run strands-solver 2025-11-30
+```
+
+To solve a puzzle from a JSON file:
 
 ```bash
 uv run strands-solver path_to_puzzle.json
 ```
+
+See `puzzles/` for the expected structure of the puzzle JSON file.
 
 ## Limitations
 
