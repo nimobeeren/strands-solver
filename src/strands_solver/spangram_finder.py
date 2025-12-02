@@ -47,6 +47,14 @@ class SpangramFinder:
     # E     U     S     A ─── D     S 
     #   ▁╱▔   ▔╲▁ │ ▔╲▁   ▔╲▁   ▔╲▁ │ 
     # L ─── Y     R     E ─── L     T 
+    # 
+    # 🟡 EXIT + GULF + OAST + DALES + RULY (spangram)
+    # 🔵 LEER
+    # 🔵 DISHY
+    # 🔵 ALOW
+    # 🔵 POKEYS
+    # 🔵 SETS
+    # 🔵 NOGS
     def find_spangrams(self, covers: set[Cover]) -> set[Solution]:
         """
         Finds all solutions, each consisting of only the strands in one of the given
