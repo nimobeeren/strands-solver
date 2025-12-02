@@ -10,8 +10,6 @@ dependencies = [
     "matplotlib>=3.10.6",
     "numpy>=2.3.3",
     "pandas>=2.3.3",
-    "pillow>=11.3.0",
-    "pytesseract>=0.3.13",
     "python-dotenv>=1.1.1",
     "rich>=14.2.0",
     "tenacity>=9.1.2",
@@ -20,7 +18,6 @@ dependencies = [
 
 [project.scripts]
 strands-solver = "strands_solver.main:main"
-strands-ocr = "strands_solver.ocr:main"
 
 [dependency-groups]
 dev = [

@@ -39,21 +39,19 @@ See `puzzles/` for the expected structure of the puzzle JSON file.
 
 ## Development
 
-### Running the tests
+### Tests
 
 ```bash
 uv run pytest
 ```
 
-The OCR tests are a bit slow so you if you don't need them you can skip them with `--ignore tests/ocr_test.py`
-
-### Running the type checker
+### Type checking
 
 ```bash
 uv run pyright
 ```
 
-### Formatting the code
+### Formatting
 
 ```bash
 uv run ruff format
