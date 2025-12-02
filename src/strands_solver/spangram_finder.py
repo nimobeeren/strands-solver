@@ -30,6 +30,23 @@ class SpangramFinder:
         self.num_rows = len(grid)
         self.num_cols = len(grid[0])
 
+    # TODO: there still seems to be a bug where solutions contain crossing strands
+    # Example solution of 2025-09-14:
+    # T ─── S     S     L     K     P 
+    #   ▔╲▁   ▁╱▔   ▁╱▔ │     │ ▔╲▁ │ 
+    # H     E     A     O     E     O 
+    # │ ▔╲▁             │     │       
+    # S     Y     D     W     Y ─── S 
+    #   ▔╲▁   ▁╱▔                     
+    # N     I     G     G ─── U ─── L 
+    #   ▔╲▁   ▁╱▔    ╳              │ 
+    # L     O     T     S     O ─── F 
+    #   ▔╲▁       │             ▔╲▁   
+    # R     E     I ─── X ─── E     A 
+    # │ ▁╱▔                         │ 
+    # E     U     S     A ─── D     S 
+    #   ▁╱▔   ▔╲▁ │ ▔╲▁   ▔╲▁   ▔╲▁ │ 
+    # L ─── Y     R     E ─── L     T 
     def find_spangrams(self, covers: set[Cover]) -> set[Solution]:
         """
         Finds all solutions, each consisting of only the strands in one of the given
