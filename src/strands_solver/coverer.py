@@ -1,4 +1,20 @@
+"""Exact cover solver using Algorithm X.
+
+This module implements Donald Knuth's Algorithm X for solving the exact cover problem.
+Given a grid and a set of strands (words found in the grid), it finds all ways to cover
+every cell of the grid with a subset of strands without overlapping.
+
+Optimizations:
+- Bitmask representation for cell coverage (fast overlap detection)
+- MRV (Minimum Remaining Values) heuristic for column selection
+- Unit propagation: forced cells (single candidate) processed without branching
+"""
+
+import logging
+
 from .common import Cover, Strand
+
+logger = logging.getLogger(__name__)
 
 
 class Coverer:
@@ -13,104 +29,146 @@ class Coverer:
 
     def cover(self, strands: set[Strand] | list[Strand]) -> set[Cover]:
         """Finds ways to cover the entire grid with strands without overlapping."""
-        # Convert to list for indexing
         strands_list = list(strands)
-        self.strand_masks, self.cell_to_strand_idx = self._build_indices(strands_list)
+        num_strands = len(strands_list)
 
-        # Find all covers without crossing checks (faster recursion)
-        results = self._cover_rec()
+        logger.info(f"Covering grid with {num_strands} candidate strands")
 
-        # Map indices back to Strands
-        all_covers = {Cover(strands_list[i] for i in result) for result in results}
+        # Build data structures for Algorithm X
+        num_cells = self.num_cells
+        num_cols = self.num_cols
 
-        # Remove covers with crossing strands
-        valid_covers = set()
-        for cover in all_covers:
-            if not self._cover_has_crossing(cover):
-                valid_covers.add(cover)
-
-        return valid_covers
-
-    def _cover_rec(self, *, covered_mask: int = 0) -> list[list[int]]:
-        """Recursive backtracking search that covers all grid cells exactly once using
-        MRV (Minimum Remaining Values) branching.
-
-        Returns a list of sub-solutions, where each sub-solution is a list of strand
-        indices which, together with covered_mask, cover the entire grid.
-
-        This implementation uses a bitset-based exact-cover style search with MRV:
-
-        - Represent the grid coverage as a 48-bit mask (one bit per cell)
-        - For each candidate `Strand`, precompute a bit mask of its covered cells
-        - At each step, choose the uncovered cell with the fewest available candidates (MRV)
-        - Branch only on strands that cover that cell and do not overlap already covered cells
-        """
-        # If fully covered, we found a solution
-        all_cells_mask = (1 << self.num_cells) - 1
-        if covered_mask == all_cells_mask:
-            # There is exactly one sub-solution and it contains no strands
-            return [[]]
-
-        num_cells = self.num_rows * self.num_cols
-
-        # MRV: choose the uncovered cell with the fewest available non-overlapping
-        # strands
-        best_candidates: list[int] | None = None
-
-        for cell_index in range(num_cells):
-            if (covered_mask >> cell_index) & 1:
-                continue  # cell is already covered
-
-            candidates = [
-                w_idx
-                for w_idx in self.cell_to_strand_idx[cell_index]
-                if (self.strand_masks[w_idx] & covered_mask) == 0
-            ]
-
-            if not candidates:
-                return []  # dead end: uncovered cell has no valid strands
-
-            if best_candidates is None or len(candidates) < len(best_candidates):
-                best_candidates = candidates
-                if len(best_candidates) == 1:
-                    break  # small early exit when forced
-
-        assert best_candidates is not None
-
-        # Try candidates for the most constrained cell
-        solutions = []
-        for w_idx in best_candidates:
-            new_mask = covered_mask | self.strand_masks[w_idx]
-            sub_solutions = self._cover_rec(covered_mask=new_mask)
-            # Prepend w_idx to each sub-solution
-            for sub in sub_solutions:
-                solutions.append([w_idx] + sub)
-
-        return solutions
-
-    def _cover_has_crossing(self, cover: Cover) -> bool:
-        """Checks if any strands in the cover cross each other."""
-        strands = list(cover)
-        for i in range(len(strands)):
-            for j in range(i + 1, len(strands)):
-                if strands[i].crosses(strands[j]):
-                    return True
-        return False
-
-    def _build_indices(self, strands: list[Strand]):
-        """Computes:
-        - `strand_masks`: bit mask per strand (1 bit per grid cell it covers)
-        - `cell_to_strands`: for each cell index, list of strand indices that cover it
-        """
+        # strand_masks[i] = bitmask of cells covered by strand i
         strand_masks: list[int] = []
-        cell_to_strands: list[list[int]] = [[] for _ in range(self.num_cells)]
+        # cell_strands[c] = tuple of strand indices that cover cell c
+        cell_strands_lists: list[list[int]] = [[] for _ in range(num_cells)]
 
-        for i, strand in enumerate(strands):
+        for i, strand in enumerate(strands_list):
             mask = 0
             for x, y in strand.positions:
-                bit_index = y * self.num_cols + x
-                mask |= 1 << bit_index
-                cell_to_strands[bit_index].append(i)
+                cell_idx = y * num_cols + x
+                mask |= 1 << cell_idx
+                cell_strands_lists[cell_idx].append(i)
             strand_masks.append(mask)
 
-        return strand_masks, cell_to_strands
+        # Convert to tuples for faster iteration
+        cell_strands = tuple(tuple(cs) for cs in cell_strands_lists)
+        strand_masks_tuple = tuple(strand_masks)
+
+        # Run Algorithm X
+        results: list[list[int]] = []
+
+        _algorithm_x_rec(
+            covered_mask=0,
+            all_cells_mask=(1 << num_cells) - 1,
+            num_cells=num_cells,
+            strand_masks=strand_masks_tuple,
+            cell_strands=cell_strands,
+            partial=[],
+            results=results,
+        )
+
+        logger.info(f"Algorithm X found {len(results)} covers (before crossing filter)")
+
+        # Convert index lists to Cover objects
+        all_covers = {Cover(strands_list[i] for i in result) for result in results}
+
+        # Filter out covers with crossing strands
+        valid_covers = set()
+        for cover in all_covers:
+            if not _cover_has_crossing(cover):
+                valid_covers.add(cover)
+
+        logger.info(f"After crossing filter: {len(valid_covers)} valid covers")
+        return valid_covers
+
+
+def _algorithm_x_rec(
+    *,
+    covered_mask: int,
+    all_cells_mask: int,
+    num_cells: int,
+    strand_masks: tuple[int, ...],
+    cell_strands: tuple[tuple[int, ...], ...],
+    partial: list[int],
+    results: list[list[int]],
+) -> None:
+    """Recursive Algorithm X with MRV heuristic and unit propagation."""
+    num_strands = len(strand_masks)
+    original_len = len(partial)
+
+    # Unit propagation + MRV selection loop
+    while True:
+        # Base case: all cells covered
+        if covered_mask == all_cells_mask:
+            results.append(list(partial))
+            # Backtrack unit propagation
+            del partial[original_len:]
+            return
+
+        # Find MRV cell (uncovered cell with fewest valid candidates)
+        min_count = num_strands + 1
+        best_cell = -1
+        best_first = -1  # First candidate for forced moves
+
+        for cell_idx in range(num_cells):
+            if (covered_mask >> cell_idx) & 1:
+                continue  # already covered
+
+            # Count valid strands for this cell
+            count = 0
+            first = -1
+            for s_idx in cell_strands[cell_idx]:
+                if (strand_masks[s_idx] & covered_mask) == 0:
+                    if first == -1:
+                        first = s_idx
+                    count += 1
+                    if count >= min_count:
+                        break
+
+            if count == 0:
+                # Dead end: uncovered cell with no valid strands
+                del partial[original_len:]
+                return
+
+            if count < min_count:
+                min_count = count
+                best_cell = cell_idx
+                best_first = first
+                if count == 1:
+                    break  # Can't do better
+
+        if min_count == 1:
+            # Forced move - select without branching
+            partial.append(best_first)
+            covered_mask |= strand_masks[best_first]
+        else:
+            break
+
+    # Branch on all candidates for the MRV cell
+    for s_idx in cell_strands[best_cell]:
+        if (strand_masks[s_idx] & covered_mask) == 0:
+            partial.append(s_idx)
+            _algorithm_x_rec(
+                covered_mask=covered_mask | strand_masks[s_idx],
+                all_cells_mask=all_cells_mask,
+                num_cells=num_cells,
+                strand_masks=strand_masks,
+                cell_strands=cell_strands,
+                partial=partial,
+                results=results,
+            )
+            partial.pop()
+
+    # Backtrack unit propagation
+    del partial[original_len:]
+
+
+def _cover_has_crossing(cover: Cover) -> bool:
+    """Checks if any strands in the cover cross each other."""
+    strands = list(cover)
+    for i in range(len(strands)):
+        for j in range(i + 1, len(strands)):
+            if strands[i].crosses(strands[j]):
+                return True
+    return False
