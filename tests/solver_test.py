@@ -308,7 +308,7 @@ def test_solve_spangram_with_duplicate_word():
 
     finder = Finder(grid, dictionary={"A", "B", "AC"}, min_length=1)
     coverer = Coverer(grid)
-    spangram_finder = SpangramFinder(grid, num_words=2)
+    spangram_finder = SpangramFinder(grid, num_words=2, non_spangram_min_length=1)
     solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
 
@@ -327,6 +327,48 @@ def test_solve_spangram_with_duplicate_word():
     )
 
     assert expected in solutions
+
+
+def test_solve_spangram_with_short_words():
+    """Test that we find a solution where the spangram consists of words less than 4 letters long."""
+    # fmt: off
+    grid = [
+        ["A", "B", "C", "D"],
+        ["E", "F", "G", "H"],
+    ]
+    # fmt: on
+
+    finder = Finder(grid, dictionary={"AB", "CD", "EFGH"}, min_length=1)
+    coverer = Coverer(grid)
+    spangram_finder = SpangramFinder(grid, num_words=2)
+    solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
+    solutions = solver.solve()
+
+    # This is a valid solution because only the spangram contains strands of <4 letters
+    valid_solution = Solution(
+        spangram=(
+            Strand(positions=((0, 0), (1, 0)), string="AB"),
+            Strand(positions=((2, 0), (3, 0)), string="CD"),
+        ),
+        non_spangram_strands=frozenset(
+            {Strand(positions=((0, 1), (1, 1), (2, 1), (3, 1)), string="EFGH")}
+        ),
+    )
+
+    # This is an invalid solution because there is a strand with <4 letters that is not
+    # part of the spangram
+    invalid_solution = Solution(
+        spangram=(
+            Strand(positions=((0, 0), (1, 0)), string="AB"),
+            Strand(positions=((0, 1), (1, 1), (2, 1), (3, 1)), string="EFGH"),
+        ),
+        non_spangram_strands=frozenset(
+            {Strand(positions=((2, 0), (3, 0)), string="CD")}
+        ),
+    )
+
+    assert valid_solution in solutions
+    assert invalid_solution not in solutions
 
 
 def test_solve_no_solutions_crossing():
@@ -366,6 +408,7 @@ def test_solve_no_solutions_self_crossing():
 
 
 def test_solve_no_solutions_self_crossing_spangram():
+    """Test that we don't find solutions where the spangram crosses itself."""
     grid = [
         ["H", "G", "F", "S"],
         ["I", "D", "E", "T"],

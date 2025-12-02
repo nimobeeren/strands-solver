@@ -16,6 +16,7 @@ class Finder:
         grid: list[list[str]],
         *,
         dictionary: set[str] | None = None,
+        # TODO: remove this parameter
         min_length: int | None = 4,
     ) -> None:
         """

@@ -12,6 +12,7 @@ class SpangramFinder:
         *,
         num_words: int,
         spangram_max_words=5,
+        non_spangram_min_length=4,
     ):
         """
         Parameters:
@@ -20,12 +21,14 @@ class SpangramFinder:
             a concatenated spangram as one word).
         - spangram_max_words: The maximum number of words that can be concatenated to
             form a spangram. We assume there is a limit to this because finding all
-            solutions would take a long time when allowing cases where the spangram
-            consists of many short words.
+            solutions would take a long time.
+        - non_spangram_min_length: The minimum length of non-spangram strands. Strands
+            shorter than this are only allowed as part of the spangram.
         """
         self.grid = grid
         self.num_words = num_words
         self.spangram_max_words = spangram_max_words
+        self.non_spangram_min_length = non_spangram_min_length
 
         self.num_rows = len(grid)
         self.num_cols = len(grid[0])
@@ -190,6 +193,16 @@ class SpangramFinder:
                                         ),
                                     )
                                     solutions.add(solution)
+
+        # Filter out solutions where non-spangram strands are too short
+        solutions = {
+            solution
+            for solution in solutions
+            if all(
+                len(strand.string) >= self.non_spangram_min_length
+                for strand in solution.non_spangram_strands
+            )
+        }
 
         return solutions
 
