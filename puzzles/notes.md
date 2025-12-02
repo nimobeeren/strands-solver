@@ -1,0 +1,1 @@
+- 2025-11-30 has a spangram consisting of short (< 4 letter) words
