@@ -1,1 +1,3 @@
+- 2025-09-15 is very hard (did not finish covering)
+- 2025-10-03 is somewhat hard (~1 min total)
 - 2025-11-30 has a spangram consisting of short (< 4 letter) words
