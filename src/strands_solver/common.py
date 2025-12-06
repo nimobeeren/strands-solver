@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from enum import Enum
 
 
-# TODO: reflect NY Times API structure
 @dataclass
 class Puzzle:
     name: str

@@ -8,11 +8,5 @@ class Ranker:
 
     def find_best(self, solutions: Iterable[Solution]) -> Solution | None:
         # Return solution with spangram consisting of fewest number of words
-        best = None
-        for solution in solutions:
-            if best is None:
-                best = solution
-                continue
-            if len(solution.spangram) < len(best.spangram):
-                best = solution
-        return best
+        ranked = sorted(solutions, key=lambda s: len(s.spangram))
+        return ranked[0]
