@@ -89,6 +89,35 @@ This is the "correct" solution as provided by the New York Times. There are othe
 - The solver will not find solutions where the spangram contains a contraction (like YOURE), which does appear in real solutions.
 - The dictionary (`dictionary.py`) uses the [ENABLE1](https://rressler.quarto.pub/i_data_sets/data_word_lists.html) word list, which is comprehensive but may occasionally miss some valid words or include uncommon ones. This may cause the solver to fail to find a valid solution.
 
+## Motivation
+
+I started this project to try out modern coding agents on a non-trivial but easy to validate problem. I expected a little vibe-coding would get me most of the way there, but the problem proved to be a lot more challenging than I thought! Along the way though, I learned to collaborate with my coding agent in a way that truly extended my abilities.
+
+My first idea was simple. First, I'd find all words in the grid by looking at each cell and taking steps in all directions, stopping if it was not a valid prefix of a word in the dictionary. Then, to cover the grid I'd just try all combinations of found words, ignoring combinations where words overlap (which I assumed would often be the case). The word finding worked first try, but the covering was extremely slow. It just never completed.
+
+To find out why, I asked my coding agent for help. I have some basic knowledge of complexity analysis, but I first wanted to refresh my memory. I prompted:
+
+> how do i estimate the computational complexity of a backtracking algorithm?
+
+After grasping the basics, I asked:
+
+> how would you estimate my algo in @solver.py? start simple and add more nuance after
+
+It explained that my algo had a worst-case complexity of $O(2^M)$ with $M$ being the number of candidate words (typically 1000-2000). This was completely infeasible!
+
+So let's make it faster!
+
+> The puzzles I want to solve have N = 48 and M ~= 2000. What are some ways I could improve my algorithm in @solver.py to make this tractable? Think about different angles, start with the simplest/closest to my current algo and give 2 better options if they exist.
+
+It gave me three options for algorithms, none of which I had ever heard of. It explained that the worst-case complexity was still exponential (as the problem is NP-complete), but that we could massively speed things up by always picking the cell with the smallest number of strands covering it, and recurse from there (a heuristic called MRV).
+
+Of course I asked it to implement the new algo, and it worked! I was now able to cover the grid in just a few minutes for most puzzles. (I did lose the chat history for this step, unfortunately.)
+
+I was really happy with this workflow. My coding agent could look at my code, suggest improvements I never would have thought of, implement them and make huge performance gains. I did end up rewriting some of the code to better fit my mental model and to fully understand it, as I found this was necessary to keep making improvements. But here too the agent was invaluable in helping me understand the existing code.
+
+> [!TIP]
+> I've added an [export of my chat](./assets/cursor_algo_analysis.md) where I asked for analysis and algo suggestions.
+
 ## Development
 
 ### Tests
