@@ -66,15 +66,12 @@ where the strands are
 🔵 HEARD
 ```
 
-Actually, the correct solution has HEAD instead of HEARD and MANAGER instead of MANAGE, but we'll ignore that for now 🤫
-
-## Prerequisites
-
-Install the [uv](https://docs.astral.sh/uv/) package manager.
-
-The dictionary will be automatically downloaded on first use.
+> This is a valid solution, but the "correct" solution uses HEAD instead of HEARD and MANAGER instead of MANAGE. we'll ignore that for now 🤫
 
 ## Usage
+
+> [!NOTE]
+> To run these examples you need the [uv](https://docs.astral.sh/uv/) package manager.
 
 To solve today's puzzle:
 
