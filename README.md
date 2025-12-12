@@ -81,14 +81,6 @@ where the strands are
 
 This is the "correct" solution as provided by the New York Times. There are other valid solutions, but not all match the theme.
 
-## Limitations
-
-- Some puzzles take a very long time to solve (see [notes.md](./puzzles/notes.md)).
-- The solver usually finds multiple solutions but it can't determine which one fits the theme best.
-- The solver will only find a solution if the spangram is a single word or a concatenation of words which are each 4 letters or longer. In reality, the words in the spangram may be shorter than 4 letters.
-- The solver will not find solutions where the spangram contains a contraction (like YOURE), which does appear in real solutions.
-- The dictionary (`dictionary.py`) uses the [ENABLE1](https://rressler.quarto.pub/i_data_sets/data_word_lists.html) word list, which is comprehensive but may occasionally miss some valid words or include uncommon ones. This may cause the solver to fail to find a valid solution.
-
 ## Motivation
 
 I started this project to try out modern coding agents on a non-trivial but easy to validate problem. I expected a little vibe-coding would get me most of the way there, but the problem proved to be a lot more challenging than I thought! Along the way though, I learned to collaborate with my coding agent in a way that truly extended my abilities.
@@ -117,6 +109,14 @@ I was really happy with this workflow. My coding agent could look at my code, su
 
 > [!TIP]
 > I've added an [export of my chat](./assets/cursor_algo_analysis.md) where I asked for analysis and algo suggestions.
+
+## Limitations
+
+- Some puzzles take a very long time to solve (see [notes.md](./puzzles/notes.md)).
+- The solver usually finds multiple solutions but it can't determine which one fits the theme best.
+- The solver will only find a solution if the spangram is a single word or a concatenation of words which are each 4 letters or longer. In reality, the words in the spangram may be shorter than 4 letters.
+- The solver will not find solutions where the spangram contains a contraction (like YOURE), which does appear in real solutions.
+- The dictionary (`dictionary.py`) uses the [ENABLE1](https://rressler.quarto.pub/i_data_sets/data_word_lists.html) word list, which is comprehensive but may occasionally miss some valid words or include uncommon ones. This may cause the solver to fail to find a valid solution.
 
 ## Development
 
