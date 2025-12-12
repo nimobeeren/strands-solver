@@ -1,5 +1,5 @@
 from strands_solver.common import Cover, Strand
-from strands_solver.coverer import Coverer
+from strands_solver.grid_coverer import GridCoverer
 
 
 def test_cover_single_solution():
@@ -25,7 +25,7 @@ def test_cover_single_solution():
 
     # Provide all 5 words to the coverer
     strands = [word, test, cool, easy, worst]
-    coverer = Coverer(grid=grid)
+    coverer = GridCoverer(grid=grid)
     solutions = coverer.cover(strands)
 
     # There should be only one solution

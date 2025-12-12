@@ -1,7 +1,7 @@
 from .common import Cover, Strand
 
 
-class Coverer:
+class GridCoverer:
     """Given a grid and a set of strands, tries to find ways to cover every cell of
     the grid with a subset of the strands without overlapping."""
 

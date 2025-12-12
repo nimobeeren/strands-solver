@@ -6,13 +6,13 @@ from pathlib import Path
 from pprint import pformat
 
 from .common import Puzzle, Solution
-from .coverer import Coverer
-from .draw import draw
-from .fetcher import Fetcher
-from .finder import Finder
-from .ranker import Ranker
+from .drawing import draw
+from .grid_coverer import GridCoverer
+from .puzzle_fetcher import PuzzleFetcher
+from .solution_ranker import SolutionRanker
 from .solver import Solver
 from .spangram_finder import SpangramFinder
+from .word_finder import WordFinder
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,13 +32,13 @@ def get_puzzle(puzzle_arg: str) -> Puzzle:
                 num_words=data["num_words"],
             )
     elif puzzle_arg == "today":
-        return Fetcher().fetch_puzzle(datetime.date.today())
+        return PuzzleFetcher().fetch_puzzle(datetime.date.today())
     else:
         try:
             date = datetime.date.fromisoformat(puzzle_arg)
         except ValueError:
             raise ValueError(f"Invalid puzzle argument: {puzzle_arg}")
-        return Fetcher().fetch_puzzle(date)
+        return PuzzleFetcher().fetch_puzzle(date)
 
 
 def write_solutions(solutions: set[Solution], output_dir: Path, puzzle_name: str):
@@ -80,13 +80,13 @@ def main():
     print(f"\nNumber of words: {puzzle.num_words}")
     print()
 
-    finder = Finder(puzzle.grid)
-    coverer = Coverer(puzzle.grid)
+    finder = WordFinder(puzzle.grid)
+    coverer = GridCoverer(puzzle.grid)
     spangram_finder = SpangramFinder(puzzle.grid, num_words=puzzle.num_words)
     solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
 
-    ranker = Ranker()
+    ranker = SolutionRanker()
     solution = ranker.find_best(solutions)
 
     if solution is None:

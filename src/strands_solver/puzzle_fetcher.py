@@ -1,10 +1,11 @@
 import datetime
+
 import httpx
 
 from .common import Puzzle
 
 
-class Fetcher:
+class PuzzleFetcher:
     """Fetches puzzles from the NY Times API."""
 
     def fetch_puzzle(self, date: datetime.date) -> Puzzle:

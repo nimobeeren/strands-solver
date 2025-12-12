@@ -1,8 +1,8 @@
-from strands_solver.coverer import Coverer
-from strands_solver.finder import Finder
-from strands_solver.solver import Solver
 from strands_solver.common import Solution, Strand
+from strands_solver.grid_coverer import GridCoverer
+from strands_solver.solver import Solver
 from strands_solver.spangram_finder import SpangramFinder
+from strands_solver.word_finder import WordFinder
 
 
 def test_solve():
@@ -14,8 +14,8 @@ def test_solve():
         ["W", "O", "R", "D", "N"],
     ]
 
-    finder = Finder(grid)
-    coverer = Coverer(grid)
+    finder = WordFinder(grid)
+    coverer = GridCoverer(grid)
     spangram_finder = SpangramFinder(grid, num_words=5)
     solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
@@ -47,8 +47,8 @@ def test_solve_single_spangram():
     # There is only one solution with 3 words:
     # {ABCDEFGHIJ, KLMN, OPQR}
 
-    finder = Finder(grid, dictionary={"ABCDEFGHIJ", "KLMN", "OPQR"})
-    coverer = Coverer(grid)
+    finder = WordFinder(grid, dictionary={"ABCDEFGHIJ", "KLMN", "OPQR"})
+    coverer = GridCoverer(grid)
     spangram_finder = SpangramFinder(grid, num_words=3)
     solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
@@ -101,8 +101,8 @@ def test_solve_concatenated_spangram():
     # {ABCDEFGH, IJKLMNOP, QRSTUVWX}
     # and it requires concatenating IJKL and MNOP to form the spangram
 
-    finder = Finder(grid, dictionary={"ABCDEFGH", "IJKL", "MNOP", "QRSTUVWX"})
-    coverer = Coverer(grid)
+    finder = WordFinder(grid, dictionary={"ABCDEFGH", "IJKL", "MNOP", "QRSTUVWX"})
+    coverer = GridCoverer(grid)
     spangram_finder = SpangramFinder(grid, num_words=3)
     solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
@@ -171,8 +171,8 @@ def test_solve_cant_concatenate_if_not_spangram():
         list("MNOPQRSTJI"),
     ]
 
-    finder = Finder(grid, dictionary={"ABCD", "EFGH", "IJKL", "MNOPQRST"})
-    coverer = Coverer(grid)
+    finder = WordFinder(grid, dictionary={"ABCD", "EFGH", "IJKL", "MNOPQRST"})
+    coverer = GridCoverer(grid)
     spangram_finder = SpangramFinder(grid, num_words=3)
     solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
@@ -191,8 +191,8 @@ def test_solve_three_word_spangram():
     # There is only one solution with 1 word: ABCDEFGHIJKL (spangram made from ABCD + EFGH + IJKL)
     # This requires concatenating 3 words to form the spangram
 
-    finder = Finder(grid, dictionary={"ABCD", "EFGH", "IJKL"})
-    coverer = Coverer(grid)
+    finder = WordFinder(grid, dictionary={"ABCD", "EFGH", "IJKL"})
+    coverer = GridCoverer(grid)
     spangram_finder = SpangramFinder(grid, num_words=1)
     solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
@@ -244,8 +244,8 @@ def test_solve_four_word_spangram():
     # There is only one solution with 1 word: ABCDEFGHIJKLMNOP (spangram made from ABCD + EFGH + IJKL + MNOP)
     # This requires concatenating 4 words to form the spangram
 
-    finder = Finder(grid, dictionary={"ABCD", "EFGH", "IJKL", "MNOP"})
-    coverer = Coverer(grid)
+    finder = WordFinder(grid, dictionary={"ABCD", "EFGH", "IJKL", "MNOP"})
+    coverer = GridCoverer(grid)
     spangram_finder = SpangramFinder(grid, num_words=1)
     solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
@@ -306,8 +306,8 @@ def test_solve_spangram_with_duplicate_word():
         ["A", "C"],
     ]
 
-    finder = Finder(grid, dictionary={"A", "B", "AC"}, min_length=1)
-    coverer = Coverer(grid)
+    finder = WordFinder(grid, dictionary={"A", "B", "AC"}, min_length=1)
+    coverer = GridCoverer(grid)
     spangram_finder = SpangramFinder(grid, num_words=2)
     solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
@@ -338,8 +338,8 @@ def test_solve_no_solutions_crossing():
     ]
     # fmt: on
 
-    finder = Finder(grid, dictionary={"AB", "CD"}, min_length=2)
-    coverer = Coverer(grid)
+    finder = WordFinder(grid, dictionary={"AB", "CD"}, min_length=2)
+    coverer = GridCoverer(grid)
     spangram_finder = SpangramFinder(grid, num_words=2)
     solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
@@ -356,8 +356,8 @@ def test_solve_no_solutions_self_crossing():
     ]
     # fmt: on
 
-    finder = Finder(grid, dictionary={"ABCD"})
-    coverer = Coverer(grid)
+    finder = WordFinder(grid, dictionary={"ABCD"})
+    coverer = GridCoverer(grid)
     spangram_finder = SpangramFinder(grid, num_words=1)
     solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
@@ -382,8 +382,10 @@ def test_solve_no_solutions_self_crossing_spangram():
     # (segments CD and IJ would cross)
     # so there are no valid solutions (unless we allow self-crossing spangrams)
 
-    finder = Finder(grid, dictionary={"ABC", "DEFGHI", "JKLMNOPQR", "ST"}, min_length=2)
-    coverer = Coverer(grid)
+    finder = WordFinder(
+        grid, dictionary={"ABC", "DEFGHI", "JKLMNOPQR", "ST"}, min_length=2
+    )
+    coverer = GridCoverer(grid)
     spangram_finder = SpangramFinder(grid, num_words=2)
     solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
@@ -395,8 +397,8 @@ def test_solve_no_solutions_spangram_max_words():
     spangram_max_words words."""
     grid = [["A", "B", "C", "D"]]
 
-    finder = Finder(grid, dictionary={"A", "B", "C", "D"}, min_length=1)
-    coverer = Coverer(grid)
+    finder = WordFinder(grid, dictionary={"A", "B", "C", "D"}, min_length=1)
+    coverer = GridCoverer(grid)
     spangram_finder = SpangramFinder(grid, num_words=1, spangram_max_words=3)
     solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()

@@ -1,9 +1,9 @@
 from strands_solver.common import Solution, Strand
-from strands_solver.ranker import Ranker
+from strands_solver.solution_ranker import SolutionRanker
 
 
 def test_find_best():
-    ranker = Ranker()
+    ranker = SolutionRanker()
     # Has a spangram consisting of two concatenated (strands)
     solution1 = Solution(
         spangram=(

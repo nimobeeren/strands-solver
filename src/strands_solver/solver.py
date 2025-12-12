@@ -1,9 +1,9 @@
 import logging
 
 from .common import Solution
-from .coverer import Coverer
-from .finder import Finder
+from .grid_coverer import GridCoverer
 from .spangram_finder import SpangramFinder
+from .word_finder import WordFinder
 
 logger = logging.getLogger(__name__)
 
@@ -12,8 +12,8 @@ class Solver:
     def __init__(
         self,
         *,
-        finder: Finder,
-        coverer: Coverer,
+        finder: WordFinder,
+        coverer: GridCoverer,
         spangram_finder: SpangramFinder,
     ):
         self.finder = finder
