@@ -4,28 +4,33 @@ version = "0.1.0"
 description = "A solver for Strands, the New York Times puzzle game."
 readme = "README.md"
 requires-python = ">=3.13"
+authors = [
+    { name = "Nimo Beeren", email = "nimobeeren@gmail.com" }
+]
+license = { text = "MIT" }
+keywords = ["strands", "nytimes", "puzzle-solver"]
 dependencies = [
-    "google-genai>=1.41.0",
     "httpx>=0.28.1",
+    "rich>=14.2.0",
+]
+
+[dependency-groups]
+dev = [
+    "google-genai>=1.41.0",
+    "ipykernel>=6.30.1",
     "matplotlib>=3.10.6",
     "numpy>=2.3.3",
     "pandas>=2.3.3",
     "python-dotenv>=1.1.1",
-    "rich>=14.2.0",
+    "pyright>=1.1.407",
+    "pytest>=9.0.1",
+    "ruff>=0.14.6",
     "tenacity>=9.1.2",
     "tiktoken>=0.11.0",
 ]
 
 [project.scripts]
 strands-solver = "strands_solver.main:main"
-
-[dependency-groups]
-dev = [
-    "ipykernel>=6.30.1",
-    "pyright>=1.1.407",
-    "pytest>=9.0.1",
-    "ruff>=0.14.6",
-]
 
 [build-system]
 requires = ["setuptools>=61.0"]
