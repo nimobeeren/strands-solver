@@ -2,6 +2,17 @@
 
 A solver for Strands, the New York Times puzzle game.
 
+## Usage
+
+> [!NOTE]
+> To run these examples you need the [uv](https://docs.astral.sh/uv/) package manager.
+
+```bash
+uv run strands-solver today  # solve today's puzzle
+uv run strands-solver YYYY-MM-DD  # solve another day's puzzle
+uv run strands-solver path_to_puzzle.json  # solve puzzle from a file
+```
+
 ## Goal
 
 This program attempts to solve Strands puzzles in one shot, i.e. without a way to iteratively determine whether the chosen words are correct or not.
@@ -15,14 +26,16 @@ More precisely, given
 the solver attempts to find a set of strands such that
 
 - every letter in the grid is covered exactly once
-- every strand spells out a valid word
-- there is at least one strand (called the _spangram_) which spans the entire grid vertically or horizontally
-- the words are somehow related to the theme
-- the number of strands matches the requirement
+- every strand is at least 4 letters long
+- there is at least one strand (called the _spangram_) which spans the entire grid vertically or horizontally and which explains the theme
+- every strand spells out a valid word (though the spangram may be a concatenation of multiple words)
+- all strands are somehow related to the theme
+- the number of strands matches the given number
 
 where a _strand_ is a sequence of adjacent letters in the grid.
 
-Note: the spangram can also be a concatenation of multiple words, but other strands cannot. There can however be multiple strands in a solution which span the entire grid.
+> [!NOTE]
+> There may be multiple strands in a solution which span the entire grid, but only one is deemed the spangram.
 
 ### Example
 
@@ -67,31 +80,6 @@ where the strands are
 ```
 
 > This is a valid solution, but the "correct" solution uses HEAD instead of HEARD and MANAGER instead of MANAGE. we'll ignore that for now 🤫
-
-## Usage
-
-> [!NOTE]
-> To run these examples you need the [uv](https://docs.astral.sh/uv/) package manager.
-
-To solve today's puzzle:
-
-```bash
-uv run strands-solver today
-```
-
-To solve a puzzle from a given date:
-
-```bash
-uv run strands-solver 2025-11-30
-```
-
-To solve a puzzle from a JSON file:
-
-```bash
-uv run strands-solver path_to_puzzle.json
-```
-
-See `puzzles/` for the expected structure of the puzzle JSON file.
 
 ## Limitations
 
