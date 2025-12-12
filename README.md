@@ -52,7 +52,7 @@ Number of words: 7
 
 The solution of this puzzle can be visualized as:
 
-![The same grid of letters as earlier, with the word LEADERSHIP highlighted in yellow and the words BOSS, CHIEF, DIRECTOR, MANAGE, SUPERVISOR and HEARD highlighted in blue.](./assets/example_solution.png)
+<img alt="The same grid of letters as earlier, with the word LEADERSHIP highlighted in yellow and the words BOSS, CHIEF, DIRECTOR, MANAGE, SUPERVISOR and HEARD highlighted in blue." src="./assets/example_solution.png" width="300" />
 
 where the strands are
 
