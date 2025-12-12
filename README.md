@@ -63,7 +63,7 @@ Theme: Who's in charge?
 Number of words: 7
 ```
 
-The solution of this puzzle can be visualized as:
+The goal is then to find this solution:
 
 <img alt="The same grid of letters as earlier, with the word LEADERSHIP highlighted in yellow and the words BOSS, CHIEF, DIRECTOR, MANAGE, SUPERVISOR and HEARD highlighted in blue." src="./assets/example_solution.png" width="300" />
 
@@ -74,12 +74,12 @@ where the strands are
 🔵 BOSS
 🔵 CHIEF
 🔵 DIRECTOR
-🔵 MANAGE
+🔵 MANAGER
 🔵 SUPERVISOR
-🔵 HEARD
+🔵 HEAD
 ```
 
-> This is a valid solution, but the "correct" solution uses HEAD instead of HEARD and MANAGER instead of MANAGE. we'll ignore that for now 🤫
+This is the "correct" solution as provided by the New York Times. There are other valid solutions, but not all match the theme.
 
 ## Limitations
 
