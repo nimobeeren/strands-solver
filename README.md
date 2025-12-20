@@ -21,18 +21,16 @@ More precisely, given
 
 - a rectangular grid of letters
 - a phrase describing a theme
-- a number specifying the number of strands in the solution
+- a number specifying the number of words in the solution
 
-the solver attempts to find a set of strands such that
+the solver attempts to find a set of _strands_ (sequences of adjacent letters in the grid) such that
 
 - every letter in the grid is covered exactly once
 - every strand is at least 4 letters long
 - there is at least one strand (called the _spangram_) which spans the entire grid vertically or horizontally and which explains the theme
 - every strand spells out a valid word (though the spangram may be a concatenation of multiple words)
 - all strands are somehow related to the theme
-- the number of strands matches the given number
-
-where a _strand_ is a sequence of adjacent letters in the grid.
+- the number of strands matches the given number of words
 
 > [!NOTE]
 > There may be multiple strands in a solution which span the entire grid, but only one is deemed the spangram.
