@@ -12,7 +12,7 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 logger = logging.getLogger(__name__)
 
 
-BATCH_SIZE = 250  # Gemini Embedding API limit
+BATCH_SIZE = 100  # Gemini Embedding API limit
 DEFAULT_DB_PATH = Path(__file__).parent.parent.parent / "data" / "embeddings.db"
 
 
