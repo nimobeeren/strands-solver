@@ -1,0 +1,83 @@
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from strands_solver.embedder import BATCH_SIZE, Embedder
+
+
+@pytest.fixture
+def embedder(tmp_path):
+    """Embedder with temp SQLite DB."""
+    db_path = tmp_path / "test_embeddings.db"
+    with patch("strands_solver.embedder.genai.Client"):
+        emb = Embedder(db_path=db_path)
+    yield emb
+    emb.close()
+
+
+@pytest.fixture
+def mock_embedding():
+    """Sample embedding vector."""
+    return [0.1, 0.2, 0.3, 0.4, 0.5]
+
+
+def test_store_and_retrieve_embeddings(embedder, mock_embedding):
+    """Store and retrieve from cache."""
+    embeddings = {"hello": mock_embedding, "world": mock_embedding}
+    embedder.store_embeddings(embeddings)
+
+    result = embedder.get_embeddings(["hello", "world"], cached=True)
+
+    assert len(result) == 2
+    assert result["hello"] == pytest.approx(mock_embedding, rel=1e-5)
+    assert result["world"] == pytest.approx(mock_embedding, rel=1e-5)
+
+
+def test_get_embeddings_cached_raises_on_missing(embedder):
+    """cached=True raises KeyError for missing content."""
+    with pytest.raises(KeyError, match="not found in cache"):
+        embedder.get_embeddings(["nonexistent"], cached=True)
+
+
+def test_get_embeddings_uncached_calls_api(embedder, mock_embedding):
+    """cached=False calls Gemini API."""
+    mock_response = MagicMock()
+    mock_emb = MagicMock()
+    mock_emb.values = mock_embedding
+    mock_response.embeddings = [mock_emb]
+    embedder.client.models.embed_content.return_value = mock_response
+
+    result = embedder.get_embeddings(["test"], cached=False)
+
+    assert result["test"] == mock_embedding
+    embedder.client.models.embed_content.assert_called_once()
+
+
+def test_get_embeddings_batches_large_requests(embedder, mock_embedding):
+    """Requests >BATCH_SIZE are split."""
+    contents = [f"content{i}" for i in range(BATCH_SIZE + 10)]
+
+    def make_response(batch_size):
+        resp = MagicMock()
+        resp.embeddings = [MagicMock(values=mock_embedding) for _ in range(batch_size)]
+        return resp
+
+    embedder.client.models.embed_content.side_effect = [
+        make_response(BATCH_SIZE),
+        make_response(10),
+    ]
+
+    result = embedder.get_embeddings(contents, cached=False)
+
+    assert len(result) == len(contents)
+    assert embedder.client.models.embed_content.call_count == 2
+
+
+def test_store_embeddings_overwrites_existing(embedder, mock_embedding):
+    """Storing overwrites existing."""
+    embedder.store_embeddings({"content": [1.0, 2.0, 3.0]})
+    embedder.store_embeddings({"content": mock_embedding})
+
+    result = embedder.get_embeddings(["content"], cached=True)
+
+    assert result["content"] == pytest.approx(mock_embedding, rel=1e-5)
