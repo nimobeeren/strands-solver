@@ -2,13 +2,14 @@
 """Embeds all words from the dictionary and stores them in the cache."""
 
 import argparse
+import asyncio
 import logging
 import random
 
 from dotenv import load_dotenv
 
 from strands_solver.dictionary import load_dictionary
-from strands_solver.embedder import BATCH_SIZE, Embedder
+from strands_solver.embedder import Embedder
 
 load_dotenv()
 
@@ -25,20 +26,14 @@ def get_cached_words(embedder: Embedder) -> set[str]:
     return {row[0] for row in cursor.fetchall()}
 
 
-def embed_words(words: list[str], embedder: Embedder) -> None:
+async def embed_words(words: list[str], embedder: Embedder) -> None:
     """Embeds words and stores them in the cache."""
-    total = len(words)
-    for i in range(0, total, BATCH_SIZE):
-        batch = words[i : i + BATCH_SIZE]
-        batch_num = i // BATCH_SIZE + 1
-        total_batches = (total + BATCH_SIZE - 1) // BATCH_SIZE
-        logger.info(f"Embedding batch {batch_num}/{total_batches} ({len(batch)} words)")
-
-        embeddings = embedder.get_embeddings(batch, cached=False)
-        embedder.store_embeddings(embeddings)
+    logger.info(f"Embedding {len(words)} words...")
+    embeddings = await embedder.get_embeddings(words, cached=False)
+    embedder.store_embeddings(embeddings)
 
 
-def main() -> None:
+async def main() -> None:
     parser = argparse.ArgumentParser(
         description="Embed dictionary words and store in cache."
     )
@@ -76,11 +71,11 @@ def main() -> None:
             logger.info("Nothing to embed, all words are already cached.")
             return
 
-        embed_words(list(words_to_embed), embedder)
+        await embed_words(list(words_to_embed), embedder)
         logger.info(f"Done! Embedded {len(words_to_embed)} words.")
     finally:
         embedder.close()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

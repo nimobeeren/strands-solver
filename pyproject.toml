@@ -28,6 +28,7 @@ dev = [
     "pytest>=9.0.1",
     "ruff>=0.14.6",
     "tiktoken>=0.11.0",
+    "pytest-asyncio>=1.3.0",
 ]
 
 [project.scripts]

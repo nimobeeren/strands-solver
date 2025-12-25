@@ -124,7 +124,7 @@ I was really happy with this workflow. My coding agent could look at my code, su
 uv run pytest
 ```
 
-### Type checking
+### Type Checking
 
 ```bash
 uv run pyright
@@ -136,7 +136,7 @@ uv run pyright
 uv run ruff format
 ```
 
-### Embedding the dictionary
+### Embedding the Dictionary
 
 The solver uses semantic embeddings to determine which solution best fits the theme (that's the plan, at least). To save on costs, we don't generate these embeddings on the spot (potentially requiring many embeddings per puzzle). Instead, we generate embeddings for the entire dictionary in advance, and store the results in a database.
 
