@@ -135,3 +135,21 @@ uv run pyright
 ```bash
 uv run ruff format
 ```
+
+### Embedding the dictionary
+
+The solver uses semantic embeddings to determine which solution best fits the theme (that's the plan, at least). To save on costs, we don't generate these embeddings on the spot (potentially requiring many embeddings per puzzle). Instead, we generate embeddings for the entire dictionary in advance, and store the results in a database.
+
+To (re)generate embeddings of the dictionary, run the `embed_dictionary` script:
+
+```bash
+uv run -m strands_solver.scripts.embed_dictionary
+```
+
+By default, we don't embed words that already appear in the database. To override this, use the `--force` flag:
+
+```bash
+uv run -m strands_solver.scripts.embed_dictionary --force
+```
+
+The embeddings database is stored in `data/embeddings.db`.
