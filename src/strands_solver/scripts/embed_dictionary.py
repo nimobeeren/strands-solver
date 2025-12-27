@@ -4,7 +4,6 @@
 import argparse
 import asyncio
 import logging
-import random
 
 from dotenv import load_dotenv
 
@@ -13,10 +12,11 @@ from strands_solver.embedder import Embedder
 
 load_dotenv()
 
-# TODO: Remove before committing
-TEST_MODE = True
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+)
 logger = logging.getLogger(__name__)
 
 
@@ -29,8 +29,7 @@ def get_cached_words(embedder: Embedder) -> set[str]:
 async def embed_words(words: list[str], embedder: Embedder) -> None:
     """Embeds words and stores them in the cache."""
     logger.info(f"Embedding {len(words)} words...")
-    embeddings = await embedder.get_embeddings(words, cached=False)
-    embedder.store_embeddings(embeddings)
+    await embedder.get_embeddings(words, cached=False, store=True)
 
 
 async def main() -> None:
@@ -47,12 +46,6 @@ async def main() -> None:
     logger.info("Loading dictionary...")
     all_words = load_dictionary()
     logger.info(f"Dictionary contains {len(all_words)} words")
-
-    # TODO: Remove before committing
-    if TEST_MODE:
-        random.seed(42)
-        all_words = set(random.sample(sorted(all_words), min(1000, len(all_words))))
-        logger.info(f"TEST_MODE: Using random sample of {len(all_words)} words")
 
     embedder = Embedder()
     try:

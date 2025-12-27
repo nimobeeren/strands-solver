@@ -10,6 +10,25 @@ class Puzzle:
     num_words: int
 
 
+class Cover(frozenset["Strand"]):
+    """A set of strands which exactly covers the grid, i.e. each cell in the grid is covered
+    by exactly one strand in the set.
+
+    Note: there is no check that a cover is valid."""
+
+    pass
+
+
+@dataclass(frozen=True)
+class Solution:
+    """A set of strands, which form a solution to a puzzle.
+
+    Note: there is no check that a solution is valid."""
+
+    spangram: tuple["Strand", ...]
+    non_spangram_strands: frozenset["Strand"]
+
+
 class Direction(Enum):
     RIGHT = (1, 0)
     DOWN_RIGHT = (1, 1)
@@ -192,22 +211,3 @@ def _orientation(p: tuple[int, int], q: tuple[int, int], r: tuple[int, int]) -> 
     if val == 0:
         return 0  # collinear
     return 1 if val > 0 else -1  # clockwise or counterclockwise
-
-
-class Cover(frozenset[Strand]):
-    """A set of strands which exactly covers the grid, i.e. each cell in the grid is covered
-    by exactly one strand in the set.
-
-    Note: there is no check that a cover is valid."""
-
-    pass
-
-
-@dataclass(frozen=True)
-class Solution:
-    """A set of strands, which form a solution to a puzzle.
-
-    Note: there is no check that a solution is valid."""
-
-    spangram: tuple[Strand, ...]
-    non_spangram_strands: frozenset[Strand]

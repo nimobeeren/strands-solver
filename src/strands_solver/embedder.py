@@ -8,18 +8,13 @@ from typing import Sequence, cast
 import sqlite_vec
 from google import genai
 from google.genai.types import ContentListUnion, EmbedContentConfig
-from tenacity import (
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
+from tenacity import RetryCallState, retry
 
 logger = logging.getLogger(__name__)
 
 
 BATCH_SIZE = 100  # Gemini Embedding API limit
-MAX_CONCURRENT_REQUESTS = 20
+MAX_CONCURRENT_REQUESTS = 10
 DEFAULT_DB_PATH = Path(__file__).parent.parent.parent / "data" / "embeddings.db"
 
 
@@ -45,16 +40,42 @@ class Embedder:
         """)
         self.conn.commit()
 
+    def _is_rate_limit_error(self, exc: BaseException) -> bool:
+        exc_str = str(exc).lower()
+        return "429" in exc_str or "rate" in exc_str or "quota" in exc_str
+
+    def _should_stop_retry(self, retry_state: RetryCallState) -> bool:
+        exc = retry_state.outcome.exception() if retry_state.outcome else None
+        if exc and self._is_rate_limit_error(exc):
+            return False  # Never stop for rate limit errors
+        return retry_state.attempt_number >= 5
+
+    def _get_retry_wait(self, retry_state: RetryCallState) -> float:
+        exc = retry_state.outcome.exception() if retry_state.outcome else None
+        if exc and self._is_rate_limit_error(exc):
+            return 60
+        # Fast exponential backoff: 1s, 2s, 4s, 8s, ...
+        return min(2 ** (retry_state.attempt_number - 1), 30)
+
+    def _log_retry(self, retry_state: RetryCallState) -> None:
+        exc = retry_state.outcome.exception() if retry_state.outcome else None
+        wait_time = retry_state.next_action.sleep if retry_state.next_action else 0
+        attempt = retry_state.attempt_number
+
+        if exc and self._is_rate_limit_error(exc):
+            logger.info(
+                f"Rate limited. Retrying in {wait_time:.0f}s (attempt {attempt})..."
+            )
+        else:
+            logger.error(
+                f"Error: {exc}. Retrying in {wait_time:.0f}s (attempt {attempt}/5)..."
+            )
+
     async def _embed_batch(self, batch: Sequence[str]) -> list[list[float]]:
         @retry(
-            stop=stop_after_attempt(5),
-            wait=wait_exponential(multiplier=1, min=4, max=60),
-            retry=retry_if_exception_type(Exception),
-            before_sleep=lambda retry_state: logger.warning(
-                f"Rate limited or error: {retry_state.outcome.exception() if retry_state.outcome else 'unknown'}. "
-                f"Retrying in {retry_state.next_action.sleep if retry_state.next_action else 0:.1f}s "  # type: ignore[union-attr]
-                f"(attempt {retry_state.attempt_number}/5)..."
-            ),
+            stop=self._should_stop_retry,
+            wait=self._get_retry_wait,
+            before_sleep=self._log_retry,
         )
         async def _call_api() -> list[list[float]]:
             response = await self.client.models.embed_content(
@@ -73,23 +94,27 @@ class Embedder:
             return await _call_api()
 
     async def get_embeddings(
-        self, contents: Sequence[str], cached: bool = True
+        self, contents: Sequence[str], cached: bool = True, store: bool = False
     ) -> dict[str, list[float]]:
-        """Gets embeddings for a list of contents.
+        """Gets embeddings for a list of contents. Returns a dictionary mapping each
+        content element to its embedding.
 
         Args:
             contents: The contents to get embeddings for.
-            cached: If True, reads from cache and raises KeyError if missing.
-                If False, fetches from the API.
+            cached: Whether to read from cache or fetch from an API.
+            store: Whether to store any embeddings that were fetched from an API in
+                the cache.
         """
         if cached:
+            if store:
+                logger.warning("store=True has no effect when cached=True")
             result = {}
             for content in contents:
                 row = self.conn.execute(
                     "SELECT vector FROM embeddings WHERE content = ?", (content,)
                 ).fetchone()
                 if row is None:
-                    raise KeyError(f"Embedding not found in cache: {content!r}")
+                    raise KeyError(f"Content not found in cache: {content!r}")
                 blob: bytes = row[0]
                 num_floats = len(blob) // 4
                 result[content] = list(struct.unpack(f"{num_floats}f", blob))
@@ -102,21 +127,25 @@ class Embedder:
             total_batches = len(batches)
             completed = 0
 
-            async def embed_with_progress(batch: Sequence[str]) -> list[list[float]]:
+            async def embed_with_progress(
+                batch: Sequence[str],
+            ) -> dict[str, list[float]]:
                 nonlocal completed
-                result = await self._embed_batch(batch)
+                embeddings = await self._embed_batch(batch)
+                batch_result = dict(zip(batch, embeddings))
+                if store:
+                    self.store_embeddings(batch_result)
                 completed += 1
                 logger.info(f"Embedded {completed}/{total_batches} batches")
-                return result
+                return batch_result
 
             batch_results = await asyncio.gather(
                 *[embed_with_progress(batch) for batch in batches]
             )
 
             result = {}
-            for batch, embeddings in zip(batches, batch_results):
-                for content, emb in zip(batch, embeddings):
-                    result[content] = emb
+            for batch_result in batch_results:
+                result.update(batch_result)
             return result
 
     def store_embeddings(self, embeddings: dict[str, list[float]]) -> None:
