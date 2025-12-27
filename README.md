@@ -136,9 +136,18 @@ uv run pyright
 uv run ruff format
 ```
 
+### View Official Solutions
+
+To display the official solution for a puzzle from the NY Times API (not used for solving):
+
+```bash
+uv run -m strands_solver.scripts.show_solution today
+uv run -m strands_solver.scripts.show_solution YYYY-MM-DD
+```
+
 ### Embedding the Dictionary
 
-The solver uses semantic embeddings to determine which solution best fits the theme (that's the plan, at least). To save on costs, we don't generate these embeddings on the spot (potentially requiring many embeddings per puzzle). Instead, we generate embeddings for the entire dictionary in advance, and store the results in a database.
+The solver uses semantic embeddings to determine which solution best fits the theme. To save on costs, we don't generate these embeddings on the spot (potentially requiring many embeddings per puzzle). Instead, we generate embeddings for the entire dictionary in advance, and store the results in a database.
 
 To (re)generate embeddings of the dictionary, run the `embed_dictionary` script:
 
