@@ -10,8 +10,8 @@ from dotenv import load_dotenv
 
 from .common import Puzzle, Solution
 from .drawing import draw
-from .main import solve_puzzle
 from .puzzle_fetcher import PuzzleFetcher
+from .solver import Solver
 
 load_dotenv()
 
@@ -81,7 +81,8 @@ async def async_main():
     print(f"\nNumber of words: {puzzle.num_words}")
     print()
 
-    solutions = await solve_puzzle(puzzle)
+    solver = Solver(puzzle)
+    solutions = await solver.solve()
 
     if not solutions:
         logging.info("No solutions found")

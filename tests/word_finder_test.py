@@ -1,7 +1,7 @@
 from strands_solver.word_finder import WordFinder
 
 
-def test_find_words():
+def test_find_all_words():
     grid = [
         ["W", "O", "R", "D"],
         ["T", "E", "S", "T"],
@@ -9,7 +9,22 @@ def test_find_words():
         ["E", "A", "S", "Y"],
     ]
     finder = WordFinder(grid)
-    words = finder.find_words(current_pos=(0, 0))
+    words = finder.find_all_words()
+    words_str = {w.string for w in words}
+    # fmt: off
+    assert words_str == {'CESTOS', 'WORSET', 'TOOTERS', 'ERST', 'ROTES', 'TOST', 'STOA', 'SOOTS', 'SLOT', 'ACTOR', 'COOTS', 'WORDS', 'LOOTER', 'TORSO', 'LOOSER', 'WORE', 'SLOE', 'TORSE', 'COSY', 'LOSER', 'DREST', 'COOER', 'TOOL', 'TROT', 'COOLS', 'WORST', 'COOT', 'TORES', 'SORT', 'LOOT', 'STOAE', 'STREW', 'TOOLS', 'COST', 'STOAS', 'RECTO', 'DREW', 'STROW', 'TOOT', 'ROTE', 'OOTS', 'LOTS', 'OWES', 'REST', 'TORS', 'WERT', 'TROW', 'SOOT', 'ACES', 'TOOTS', 'TOEA', 'LOOTERS', 'ORTS', 'TRET', 'TORSOS', 'WORT', 'COOLY', 'WORTS', 'ORES', 'ROTO', 'CERO', 'EASY', 'SECTOR', 'TORTS', 'COOS', 'LOST', 'COSET', 'ROES', 'WOST', 'LOOSE', 'SLOTS', 'TWOS', 'WEST', 'SOTS', 'COOERS', 'ROSE', 'SECT', 'TOES', 'TEST', 'RETOOLS', 'WORSE', 'TORT', 'TOOTER', 'LOOS', 'WORD', 'SORD', 'OCAS', 'SEROW', 'COSTLY', 'LOSE', 'SOYS', 'ROSET', 'TOYS', 'RETOOL', 'ROTOS', 'COOL', 'SOLS', 'WOES', 'SLOES', 'COTES', 'COTE', 'ACTORS', 'TORE'}
+    # fmt: on
+
+
+def test_find_words_rec():
+    grid = [
+        ["W", "O", "R", "D"],
+        ["T", "E", "S", "T"],
+        ["C", "O", "O", "L"],
+        ["E", "A", "S", "Y"],
+    ]
+    finder = WordFinder(grid)
+    words = finder._find_words_rec(current_pos=(0, 0))
     words_str = {w.string for w in words}
     assert words_str == {
         "WOST",
@@ -27,7 +42,7 @@ def test_find_words():
     }
 
 
-def test_find_words_no_min_length():
+def test_find_words_rec_no_min_length():
     grid = [
         ["W", "O", "R", "D"],
         ["T", "E", "S", "T"],
@@ -35,7 +50,7 @@ def test_find_words_no_min_length():
         ["E", "A", "S", "Y"],
     ]
     finder = WordFinder(grid, min_length=None)
-    words = finder.find_words(current_pos=(0, 0))
+    words = finder._find_words_rec(current_pos=(0, 0))
     words_str = {w.string for w in words}
     assert words_str == {
         "WORDS",
@@ -57,18 +72,3 @@ def test_find_words_no_min_length():
         "WO",
         "WORD",
     }
-
-
-def test_find_all_words():
-    grid = [
-        ["W", "O", "R", "D"],
-        ["T", "E", "S", "T"],
-        ["C", "O", "O", "L"],
-        ["E", "A", "S", "Y"],
-    ]
-    finder = WordFinder(grid)
-    words = finder.find_all_words()
-    words_str = {w.string for w in words}
-    # fmt: off
-    assert words_str == {'CESTOS', 'WORSET', 'TOOTERS', 'ERST', 'ROTES', 'TOST', 'STOA', 'SOOTS', 'SLOT', 'ACTOR', 'COOTS', 'WORDS', 'LOOTER', 'TORSO', 'LOOSER', 'WORE', 'SLOE', 'TORSE', 'COSY', 'LOSER', 'DREST', 'COOER', 'TOOL', 'TROT', 'COOLS', 'WORST', 'COOT', 'TORES', 'SORT', 'LOOT', 'STOAE', 'STREW', 'TOOLS', 'COST', 'STOAS', 'RECTO', 'DREW', 'STROW', 'TOOT', 'ROTE', 'OOTS', 'LOTS', 'OWES', 'REST', 'TORS', 'WERT', 'TROW', 'SOOT', 'ACES', 'TOOTS', 'TOEA', 'LOOTERS', 'ORTS', 'TRET', 'TORSOS', 'WORT', 'COOLY', 'WORTS', 'ORES', 'ROTO', 'CERO', 'EASY', 'SECTOR', 'TORTS', 'COOS', 'LOST', 'COSET', 'ROES', 'WOST', 'LOOSE', 'SLOTS', 'TWOS', 'WEST', 'SOTS', 'COOERS', 'ROSE', 'SECT', 'TOES', 'TEST', 'RETOOLS', 'WORSE', 'TORT', 'TOOTER', 'LOOS', 'WORD', 'SORD', 'OCAS', 'SEROW', 'COSTLY', 'LOSE', 'SOYS', 'ROSET', 'TOYS', 'RETOOL', 'ROTOS', 'COOL', 'SOLS', 'WOES', 'SLOES', 'COTES', 'COTE', 'ACTORS', 'TORE'}
-    # fmt: on

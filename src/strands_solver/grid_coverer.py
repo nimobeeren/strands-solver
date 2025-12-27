@@ -1,21 +1,21 @@
+from typing import Iterable
 from .common import Cover, Strand
 
 
 class GridCoverer:
-    """Given a grid and a set of strands, tries to find ways to cover every cell of
-    the grid with a subset of the strands without overlapping."""
+    """Finds ways to cover every cell of a grid with non-overlapping strands."""
 
     def __init__(self, grid: list[list[str]]):
-        self.grid = grid
-        self.num_rows = len(grid)
-        self.num_cols = len(grid[0])
-        self.num_cells = self.num_rows * self.num_cols
+        self._grid = grid
+        self._num_rows = len(grid)
+        self._num_cols = len(grid[0])
+        self._num_cells = self._num_rows * self._num_cols
 
-    def cover(self, strands: set[Strand] | list[Strand]) -> set[Cover]:
-        """Finds ways to cover the entire grid with strands without overlapping."""
+    def cover(self, strands: Iterable[Strand]) -> set[Cover]:
+        """Finds ways to cover the grid by choosing a subset of the strands without overlapping."""
         # Convert to list for indexing
         strands_list = list(strands)
-        self.strand_masks, self.cell_to_strand_idx = self._build_indices(strands_list)
+        self._strand_masks, self._cell_to_strand_idx = self._build_indices(strands_list)
 
         # Find all covers without crossing checks (faster recursion)
         results = self._cover_rec()
@@ -46,25 +46,23 @@ class GridCoverer:
         - Branch only on strands that cover that cell and do not overlap already covered cells
         """
         # If fully covered, we found a solution
-        all_cells_mask = (1 << self.num_cells) - 1
+        all_cells_mask = (1 << self._num_cells) - 1
         if covered_mask == all_cells_mask:
             # There is exactly one sub-solution and it contains no strands
             return [[]]
-
-        num_cells = self.num_rows * self.num_cols
 
         # MRV: choose the uncovered cell with the fewest available non-overlapping
         # strands
         best_candidates: list[int] | None = None
 
-        for cell_index in range(num_cells):
+        for cell_index in range(self._num_cells):
             if (covered_mask >> cell_index) & 1:
                 continue  # cell is already covered
 
             candidates = [
                 w_idx
-                for w_idx in self.cell_to_strand_idx[cell_index]
-                if (self.strand_masks[w_idx] & covered_mask) == 0
+                for w_idx in self._cell_to_strand_idx[cell_index]
+                if (self._strand_masks[w_idx] & covered_mask) == 0
             ]
 
             if not candidates:
@@ -80,7 +78,7 @@ class GridCoverer:
         # Try candidates for the most constrained cell
         solutions = []
         for w_idx in best_candidates:
-            new_mask = covered_mask | self.strand_masks[w_idx]
+            new_mask = covered_mask | self._strand_masks[w_idx]
             sub_solutions = self._cover_rec(covered_mask=new_mask)
             # Prepend w_idx to each sub-solution
             for sub in sub_solutions:
@@ -103,12 +101,12 @@ class GridCoverer:
         - `cell_to_strands`: for each cell index, list of strand indices that cover it
         """
         strand_masks: list[int] = []
-        cell_to_strands: list[list[int]] = [[] for _ in range(self.num_cells)]
+        cell_to_strands: list[list[int]] = [[] for _ in range(self._num_cells)]
 
         for i, strand in enumerate(strands):
             mask = 0
             for x, y in strand.positions:
-                bit_index = y * self.num_cols + x
+                bit_index = y * self._num_cols + x
                 mask |= 1 << bit_index
                 cell_to_strands[bit_index].append(i)
             strand_masks.append(mask)

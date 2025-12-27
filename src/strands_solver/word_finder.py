@@ -8,8 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 class WordFinder:
-    """Finds strands forming words given a grid and an optional dictionary and minimum
-    word length."""
+    """Finds strands forming words in a grid."""
 
     def __init__(
         self,
@@ -41,10 +40,10 @@ class WordFinder:
         words: set[Strand] = set()
         for x in range(self.num_cols):
             for y in range(self.num_rows):
-                words |= self.find_words(current_pos=(x, y))
+                words |= self._find_words_rec(current_pos=(x, y))
         return words
 
-    def find_words(
+    def _find_words_rec(
         self,
         *,
         current_pos: tuple[int, int],
@@ -62,14 +61,14 @@ class WordFinder:
         )
 
         # Prune if not a word prefix
-        if not self.is_word_prefix(candidate.string):
+        if not self._is_word_prefix(candidate.string):
             return words
 
         # Prune if the candidate strand crosses itself
         if candidate.has_self_crossing():
             return words
 
-        if len(candidate.string) >= self.min_length and self.is_word(candidate.string):
+        if len(candidate.string) >= self.min_length and self._is_word(candidate.string):
             logger.debug(f"Found word: {candidate.string}")
             words.add(candidate)
 
@@ -87,17 +86,17 @@ class WordFinder:
             if (next_x, next_y) in candidate.positions:
                 continue  # next position overlaps
 
-            words |= self.find_words(
+            words |= self._find_words_rec(
                 current_pos=(next_x, next_y),
                 prefix=candidate,
             )
 
         return words
 
-    def is_word(self, candidate: str) -> bool:
+    def _is_word(self, candidate: str) -> bool:
         return candidate in self.dictionary
 
-    def is_word_prefix(self, candidate: str) -> bool:
+    def _is_word_prefix(self, candidate: str) -> bool:
         candidate = candidate.upper()
         i = bisect.bisect_left(self.sorted_dictionary, candidate)
         return i < len(self.sorted_dictionary) and self.sorted_dictionary[i].startswith(

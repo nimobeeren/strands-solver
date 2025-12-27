@@ -11,7 +11,7 @@ class SpangramFinder:
         grid: list[list[str]],
         *,
         num_words: int,
-        spangram_max_words=5,
+        spangram_max_words: int = 5,
     ):
         """
         Parameters:
@@ -23,12 +23,11 @@ class SpangramFinder:
             solutions would take a long time when allowing cases where the spangram
             consists of many short words.
         """
-        self.grid = grid
-        self.num_words = num_words
-        self.spangram_max_words = spangram_max_words
-
-        self.num_rows = len(grid)
-        self.num_cols = len(grid[0])
+        self._grid = grid
+        self._num_words = num_words
+        self._spangram_max_words = spangram_max_words
+        self._num_rows = len(grid)
+        self._num_cols = len(grid[0])
 
     # TODO: there still seems to be a bug where solutions contain crossing strands
     # Example solution of 2025-09-14:
@@ -86,14 +85,14 @@ class SpangramFinder:
         for cover in covers:
             # If cover doesn't have enough words, it can never be a valid solution, so
             # skip it
-            if len(cover) < self.num_words:
+            if len(cover) < self._num_words:
                 continue
             # If a cover has exactly enough words, we don't need to concatenate
             # any words
-            elif len(cover) == self.num_words:
+            elif len(cover) == self._num_words:
                 # For every spangram in the cover, add a solution with that spangram
                 for strand in cover:
-                    if strand.is_spangram(self.num_rows, self.num_cols):
+                    if strand.is_spangram(self._num_rows, self._num_cols):
                         solution = Solution(
                             spangram=(strand,),
                             non_spangram_strands=frozenset(cover - {strand}),
@@ -102,14 +101,14 @@ class SpangramFinder:
 
             # If a cover has too many words, we may be able to reduce the number by
             # concatenating some words (note: only the spangram can be a concatenation)
-            elif len(cover) > self.num_words:
+            elif len(cover) > self._num_words:
                 # Number of words that need to be concatenated into one
-                K = len(cover) - self.num_words + 1
+                K = len(cover) - self._num_words + 1
 
                 # We assume there is a limit to how many words a spangram consists of
                 # in real solutions, and since we require concatenation of more words
                 # than that, this can't be a real solution.
-                if K > self.spangram_max_words:
+                if K > self._spangram_max_words:
                     continue
 
                 # Optimization: we only try concatenations that include all duplicate
@@ -148,7 +147,7 @@ class SpangramFinder:
                         ):
                             concatenated = ordering[0].concatenate(*ordering[1:])
                             if (
-                                concatenated.is_spangram(self.num_rows, self.num_cols)
+                                concatenated.is_spangram(self._num_rows, self._num_cols)
                                 # The concatenated strand may cross itself at the word
                                 # border, but this doesn't happen in real solutions
                                 and not concatenated.has_self_crossing()
@@ -177,7 +176,7 @@ class SpangramFinder:
                         ):
                             concatenated = ordering[0].concatenate(*ordering[1:])
                             if (
-                                concatenated.is_spangram(self.num_rows, self.num_cols)
+                                concatenated.is_spangram(self._num_rows, self._num_cols)
                                 # The concatenated strand may cross itself at the word
                                 # border, but this doesn't happen in real solutions
                                 and not concatenated.has_self_crossing()
@@ -201,7 +200,7 @@ class SpangramFinder:
                                 concatenated = ordering[0].concatenate(*ordering[1:])
                                 if (
                                     concatenated.is_spangram(
-                                        self.num_rows, self.num_cols
+                                        self._num_rows, self._num_cols
                                     )
                                     # The concatenated strand may cross itself at the
                                     # word border, but this doesn't happen in
