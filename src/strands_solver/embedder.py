@@ -1,10 +1,11 @@
 import asyncio
 import logging
 import sqlite3
-import struct
 from pathlib import Path
 from typing import Sequence, cast
 
+import numpy as np
+import numpy.typing as npt
 import sqlite_vec
 from google import genai
 from google.genai.types import ContentListUnion, EmbedContentConfig
@@ -71,13 +72,13 @@ class Embedder:
                 f"Error: {exc}. Retrying in {wait_time:.0f}s (attempt {attempt}/5)..."
             )
 
-    async def _embed_batch(self, batch: Sequence[str]) -> list[list[float]]:
+    async def _embed_batch(self, batch: Sequence[str]) -> list[npt.NDArray[np.float32]]:
         @retry(
             stop=self._should_stop_retry,
             wait=self._get_retry_wait,
             before_sleep=self._log_retry,
         )
-        async def _call_api() -> list[list[float]]:
+        async def _call_api() -> list[npt.NDArray[np.float32]]:
             response = await self.client.models.embed_content(
                 model="gemini-embedding-001",
                 contents=cast(ContentListUnion, batch),
@@ -87,7 +88,7 @@ class Embedder:
             result = []
             for emb in response.embeddings:
                 assert emb.values
-                result.append(list(emb.values))
+                result.append(np.asarray(emb.values, dtype=np.float32))
             return result
 
         async with self._semaphore:
@@ -95,7 +96,7 @@ class Embedder:
 
     async def get_embeddings(
         self, contents: Sequence[str], cached: bool = True, store: bool = False
-    ) -> dict[str, list[float]]:
+    ) -> dict[str, npt.NDArray[np.float32]]:
         """Gets embeddings for a list of contents. Returns a dictionary mapping each
         content element to its embedding.
 
@@ -108,7 +109,7 @@ class Embedder:
         if cached:
             if store:
                 logger.warning("store=True has no effect when cached=True")
-            result = {}
+            result: dict[str, npt.NDArray[np.float32]] = {}
             for content in contents:
                 row = self.conn.execute(
                     "SELECT vector FROM embeddings WHERE content = ?", (content,)
@@ -116,8 +117,7 @@ class Embedder:
                 if row is None:
                     raise KeyError(f"Content not found in cache: {content!r}")
                 blob: bytes = row[0]
-                num_floats = len(blob) // 4
-                result[content] = list(struct.unpack(f"{num_floats}f", blob))
+                result[content] = np.frombuffer(blob, dtype=np.float32).copy()
             return result
         else:
             batches = [
@@ -129,7 +129,7 @@ class Embedder:
 
             async def embed_with_progress(
                 batch: Sequence[str],
-            ) -> dict[str, list[float]]:
+            ) -> dict[str, npt.NDArray[np.float32]]:
                 nonlocal completed
                 embeddings = await self._embed_batch(batch)
                 batch_result = dict(zip(batch, embeddings))
@@ -143,15 +143,15 @@ class Embedder:
                 *[embed_with_progress(batch) for batch in batches]
             )
 
-            result = {}
+            combined: dict[str, npt.NDArray[np.float32]] = {}
             for batch_result in batch_results:
-                result.update(batch_result)
-            return result
+                combined.update(batch_result)
+            return combined
 
-    def store_embeddings(self, embeddings: dict[str, list[float]]) -> None:
-        """Store embeddings in SQLite."""
+    def store_embeddings(self, embeddings: dict[str, npt.NDArray[np.float32]]) -> None:
+        """Store embeddings in the cache."""
         for content, vector in embeddings.items():
-            blob = sqlite_vec.serialize_float32(vector)
+            blob = vector.tobytes()
             self.conn.execute(
                 "INSERT OR REPLACE INTO embeddings (content, vector) VALUES (?, ?)",
                 (content, blob),

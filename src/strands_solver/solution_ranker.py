@@ -1,7 +1,7 @@
-from itertools import combinations
 import logging
 
 import numpy as np
+import numpy.typing as npt
 
 from .common import Puzzle, Solution
 from .embedder import Embedder
@@ -9,28 +9,28 @@ from .embedder import Embedder
 logger = logging.getLogger(__name__)
 
 
-def _cosine_similarity(vec1: list[float], vec2: list[float]) -> float:
-    arr1 = np.array(vec1)
-    arr2 = np.array(vec2)
-    norm1 = np.linalg.norm(arr1)
-    norm2 = np.linalg.norm(arr2)
-    if norm1 == 0 or norm2 == 0:
-        return 0.0
-    return float(np.dot(arr1, arr2) / (norm1 * norm2))
-
-
 def _avg_word_similarity(
-    solution: Solution, theme: str, embeddings: dict[str, list[float]]
+    solution: Solution,
+    theme: str,
+    embeddings: dict[str, npt.NDArray[np.float32]],
 ) -> float:
     words = [theme]
     words += [strand.string for strand in solution.spangram]
     words += [strand.string for strand in solution.non_spangram_strands]
 
-    similarities = [
-        _cosine_similarity(embeddings[w1], embeddings[w2])
-        for w1, w2 in combinations(words, 2)
-    ]
-    return sum(similarities) / len(similarities) if similarities else 0.0
+    if len(words) < 2:
+        raise ValueError("At least two words are required to compute similarity")
+
+    # Compute cosine similarity for all pairs of words
+    X = np.stack([embeddings[w] for w in words])
+    norms = np.linalg.norm(X, axis=1, keepdims=True)
+    norms = np.where(norms == 0, 1.0, norms)  # avoid division by zero
+    X = X / norms
+    S = X @ X.T
+
+    i_upper, j_upper = np.triu_indices(len(words), k=1)
+    upper_values = S[i_upper, j_upper]
+    return float(np.mean(upper_values))
 
 
 class SolutionRanker:

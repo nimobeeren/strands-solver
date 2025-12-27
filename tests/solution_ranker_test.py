@@ -1,5 +1,6 @@
 from unittest.mock import AsyncMock, Mock
 
+import numpy as np
 import pytest
 
 from strands_solver.common import Puzzle, Solution, Strand
@@ -11,11 +12,17 @@ async def test_find_best():
     embedder = Mock()
     embedder.get_embeddings = AsyncMock(
         return_value={
-            "theme": [1.0, 0.0, 0.0],
-            "CAT": [0.9, 0.1, 0.0],  # Similar to theme
-            "DOG": [0.8, 0.2, 0.0],  # Similar to theme and CAT
-            "XYZ": [0.0, 0.0, 1.0],  # Dissimilar to everything
-            "ABC": [0.0, 0.0, 0.9],  # Similar to XYZ but dissimilar to others
+            "theme": np.array([1.0, 0.0, 0.0], dtype=np.float32),
+            "CAT": np.array([0.9, 0.1, 0.0], dtype=np.float32),  # Similar to theme
+            "DOG": np.array(
+                [0.8, 0.2, 0.0], dtype=np.float32
+            ),  # Similar to theme and CAT
+            "XYZ": np.array(
+                [0.0, 0.0, 1.0], dtype=np.float32
+            ),  # Dissimilar to everything
+            "ABC": np.array(
+                [0.0, 0.0, 0.9], dtype=np.float32
+            ),  # Similar to XYZ but dissimilar to others
         }
     )
 
