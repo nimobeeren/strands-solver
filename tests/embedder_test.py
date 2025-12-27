@@ -1,5 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import numpy as np
 import pytest
 
 from strands_solver.embedder import BATCH_SIZE, Embedder
@@ -18,7 +19,7 @@ def embedder(tmp_path):
 @pytest.fixture
 def mock_embedding():
     """Sample embedding vector."""
-    return [0.1, 0.2, 0.3, 0.4, 0.5]
+    return np.array([0.1, 0.2, 0.3, 0.4, 0.5], dtype=np.float32)
 
 
 @pytest.mark.asyncio
@@ -44,7 +45,7 @@ async def test_get_embeddings_cached_raises_on_missing(embedder):
 @pytest.mark.asyncio
 async def test_store_embeddings_overwrites_existing(embedder, mock_embedding):
     """Storing overwrites existing."""
-    embedder.store_embeddings({"content": [1.0, 2.0, 3.0]})
+    embedder.store_embeddings({"content": np.array([1.0, 2.0, 3.0], dtype=np.float32)})
     embedder.store_embeddings({"content": mock_embedding})
 
     result = await embedder.get_embeddings(["content"], cached=True)
@@ -57,13 +58,13 @@ async def test_get_embeddings_uncached_calls_api(embedder, mock_embedding):
     """cached=False calls Gemini API."""
     mock_response = MagicMock()
     mock_emb = MagicMock()
-    mock_emb.values = mock_embedding
+    mock_emb.values = mock_embedding.tolist()
     mock_response.embeddings = [mock_emb]
     embedder.client.models.embed_content = AsyncMock(return_value=mock_response)
 
     result = await embedder.get_embeddings(["test"], cached=False)
 
-    assert result["test"] == mock_embedding
+    assert result["test"] == pytest.approx(mock_embedding, rel=1e-5)
     embedder.client.models.embed_content.assert_called_once()
 
 
@@ -74,7 +75,9 @@ async def test_get_embeddings_batches_large_requests(embedder, mock_embedding):
 
     def make_response(batch_size):
         resp = MagicMock()
-        resp.embeddings = [MagicMock(values=mock_embedding) for _ in range(batch_size)]
+        resp.embeddings = [
+            MagicMock(values=mock_embedding.tolist()) for _ in range(batch_size)
+        ]
         return resp
 
     embedder.client.models.embed_content = AsyncMock(
