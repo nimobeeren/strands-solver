@@ -37,12 +37,10 @@ class SolutionRanker:
     def __init__(self, embedder: Embedder) -> None:
         self.embedder = embedder
 
-    async def find_best(
-        self, solutions: list[Solution], puzzle: Puzzle
-    ) -> Solution | None:
-        """Find the best solution by average word similarity."""
+    async def rank(self, solutions: list[Solution], puzzle: Puzzle) -> list[Solution]:
+        """Rank solutions by average word similarity, from best to worst."""
         if not solutions:
-            return None
+            return []
 
         all_words = set[str]()
         for solution in solutions:
@@ -61,10 +59,11 @@ class SolutionRanker:
         logging.info("Got all embeddings")
 
         logging.info(f"Computing similarity scores for {len(solutions)} solutions")
-        best = max(
+        ranked = sorted(
             solutions,
             key=lambda s: _avg_word_similarity(s, puzzle.theme, embeddings),
+            reverse=True,
         )
         logging.info("Finished computing similarity scores")
 
-        return best
+        return ranked

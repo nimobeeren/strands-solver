@@ -8,7 +8,7 @@ from strands_solver.solution_ranker import SolutionRanker
 
 
 @pytest.mark.asyncio
-async def test_find_best():
+async def test_rank():
     embedder = Mock()
     embedder.get_embeddings = AsyncMock(
         return_value={
@@ -40,5 +40,5 @@ async def test_find_best():
         non_spangram_strands=frozenset({Strand(positions=((1, 0),), string="ABC")}),
     )
 
-    best = await ranker.find_best([solution1, solution2], puzzle)
-    assert best == solution1
+    ranked = await ranker.rank([solution1, solution2], puzzle)
+    assert ranked == [solution1, solution2]

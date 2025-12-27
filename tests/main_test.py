@@ -1,7 +1,7 @@
 from pathlib import Path
 
+from strands_solver.cli import get_puzzle
 from strands_solver.common import Puzzle
-from strands_solver.main import get_puzzle
 
 
 def test_get_puzzle_with_path():

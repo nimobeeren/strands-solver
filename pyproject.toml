@@ -32,7 +32,7 @@ dev = [
 ]
 
 [project.scripts]
-strands-solver = "strands_solver.main:main"
+strands-solver = "strands_solver.cli:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]
