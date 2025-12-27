@@ -1,18 +1,25 @@
 import argparse
+import asyncio
 import datetime
 import json
 import logging
 from pathlib import Path
 from pprint import pformat
 
+from dotenv import load_dotenv
+
 from .common import Puzzle, Solution
 from .drawing import draw
+from .embedder import Embedder
 from .grid_coverer import GridCoverer
 from .puzzle_fetcher import PuzzleFetcher
 from .solution_ranker import SolutionRanker
 from .solver import Solver
 from .spangram_finder import SpangramFinder
 from .word_finder import WordFinder
+
+load_dotenv()
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -55,7 +62,7 @@ def write_solutions(solutions: set[Solution], output_dir: Path, puzzle_name: str
     logging.info(f"All {len(solutions)} solutions written to directory: '{output_dir}'")
 
 
-def main():
+async def async_main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "puzzle",
@@ -86,8 +93,9 @@ def main():
     solver = Solver(finder=finder, coverer=coverer, spangram_finder=spangram_finder)
     solutions = solver.solve()
 
-    ranker = SolutionRanker()
-    solution = ranker.find_best(solutions)
+    embedder = Embedder()
+    ranker = SolutionRanker(embedder)
+    solution = await ranker.find_best(list(solutions), puzzle)
 
     if solution is None:
         logging.info("No solutions found")
@@ -107,6 +115,10 @@ def main():
         write_solutions(
             solutions=solutions, output_dir=output_dir, puzzle_name=puzzle.name
         )
+
+
+def main():
+    return asyncio.run(async_main())
 
 
 if __name__ == "__main__":

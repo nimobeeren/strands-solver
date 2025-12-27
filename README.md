@@ -111,8 +111,8 @@ I was really happy with this workflow. My coding agent could look at my code, su
 ## Limitations
 
 - Some puzzles take a very long time to solve (see [notes.md](./puzzles/notes.md)).
-- The solver usually finds multiple solutions but it doesn't always choose the solution that best fits the theme.
 - The solver will only find a solution if the spangram is a single word or a concatenation of words which are each 4 letters or longer. In reality, the words in a concatenated spangram may be shorter than 4 letters.
+- The solver usually finds multiple solutions but it doesn't always choose the solution that best fits the theme.
 - The solver will not find solutions where the spangram contains a contraction (like YOURE), which does appear in real solutions.
 - The dictionary (`dictionary.py`) uses the [ENABLE1](https://rressler.quarto.pub/i_data_sets/data_word_lists.html) word list, which is comprehensive but may occasionally miss some valid words or include uncommon ones. This may cause the solver to fail to find a valid solution.
 
