@@ -37,9 +37,11 @@ class SolutionRanker:
     def __init__(self, embedder: Embedder) -> None:
         self.embedder = embedder
 
-    def can_rank(self) -> bool:
-        """Checks if ranking is possible."""
-        return self.embedder.can_get_embeddings(cached=True)
+    async def can_rank(self) -> bool:
+        """Checks if ranking is currently possible."""
+        cached = await self.embedder.can_get_embeddings(cached=True)
+        api = await self.embedder.can_get_embeddings(cached=False)
+        return cached and api
 
     async def rank(self, solutions: list[Solution], puzzle: Puzzle) -> list[Solution]:
         """Ranks solutions by average word similarity, from best to worst.
@@ -50,7 +52,7 @@ class SolutionRanker:
         if not solutions:
             return []
 
-        if not self.can_rank():
+        if not await self.can_rank():
             raise RuntimeError("Cannot rank solutions")
 
         all_words = set[str]()

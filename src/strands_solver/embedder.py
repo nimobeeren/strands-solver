@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import sqlite3
 from pathlib import Path
 from typing import Sequence, cast
@@ -23,58 +24,64 @@ class Embedder:
     """Text embedding with SQLite-backed caching."""
 
     def __init__(self, db_path: Path = DEFAULT_DB_PATH) -> None:
-        self.client = genai.Client().aio
-        self.conn = sqlite3.connect(db_path)
-        self.conn.enable_load_extension(True)
-        sqlite_vec.load(self.conn)
-        self.conn.enable_load_extension(False)
+        self._db_conn = sqlite3.connect(db_path)
+        self._db_conn.enable_load_extension(True)
+        sqlite_vec.load(self._db_conn)
+        self._db_conn.enable_load_extension(False)
         self._init_db()
         self._semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
 
     def _init_db(self) -> None:
         """Create tables."""
-        self.conn.execute("""
+        self._db_conn.execute("""
             CREATE TABLE IF NOT EXISTS embeddings (
                 content TEXT PRIMARY KEY,
                 vector BLOB
             )
         """)
-        self.conn.commit()
+        self._db_conn.commit()
 
-    def can_get_embeddings(self, cached: bool) -> bool:
+    async def can_get_embeddings(self, cached: bool) -> bool:
         """Check if embeddings can be retrieved.
 
         Args:
             cached: If True, checks if the database contains all dictionary words.
-                If False, always returns True (API is assumed available).
+                If False, checks if the Gemini API is accessible.
         """
-        if not cached:
-            return True
+        if cached:
+            try:
+                from .dictionary import load_dictionary
 
-        try:
-            from .dictionary import load_dictionary
+                dictionary = list(load_dictionary())
 
-            dictionary = list(load_dictionary())
+                # Check if all dictionary words appear in the database (batched)
+                batch_size = 1000
+                found_count = 0
+                for i in range(0, len(dictionary), batch_size):
+                    batch = dictionary[i : i + batch_size]
+                    placeholders = ",".join("?" * len(batch))
+                    cursor = self._db_conn.execute(
+                        f"SELECT COUNT(*) FROM embeddings WHERE content IN ({placeholders})",
+                        batch,
+                    )
+                    found_count += cursor.fetchone()[0]
 
-            # Check if all dictionary words appear in the database (batched)
-            batch_size = 1000
-            found_count = 0
-            for i in range(0, len(dictionary), batch_size):
-                batch = dictionary[i : i + batch_size]
-                placeholders = ",".join("?" * len(batch))
-                cursor = self.conn.execute(
-                    f"SELECT COUNT(*) FROM embeddings WHERE content IN ({placeholders})",
-                    batch,
+                return found_count >= len(dictionary)
+            except Exception:
+                logger.exception(
+                    "Exception occurred while checking embeddings availability, "
+                    "assuming embeddings are not available."
                 )
-                found_count += cursor.fetchone()[0]
-
-            return found_count >= len(dictionary)
-        except Exception:
-            logger.exception(
-                "Exception occurred while checking embeddings availability, "
-                "assuming embeddings are not available."
-            )
-            return False
+                return False
+        else:
+            # First check if API key is set to avoid noisy errors from genai library
+            if not os.environ.get("GEMINI_API_KEY"):
+                return False
+            try:
+                await genai.Client().aio.models.list()
+                return True
+            except Exception:
+                return False
 
     def _is_rate_limit_error(self, exc: BaseException) -> bool:
         exc_str = str(exc).lower()
@@ -114,7 +121,7 @@ class Embedder:
             before_sleep=self._log_retry,
         )
         async def _call_api() -> list[npt.NDArray[np.float32]]:
-            response = await self.client.models.embed_content(
+            response = await genai.Client().aio.models.embed_content(
                 model="gemini-embedding-001",
                 contents=cast(ContentListUnion, batch),
                 config=EmbedContentConfig(task_type="SEMANTIC_SIMILARITY"),
@@ -146,7 +153,7 @@ class Embedder:
                 logger.warning("store=True has no effect when cached=True")
             result: dict[str, npt.NDArray[np.float32]] = {}
             for content in contents:
-                row = self.conn.execute(
+                row = self._db_conn.execute(
                     "SELECT vector FROM embeddings WHERE content = ?", (content,)
                 ).fetchone()
                 if row is None:
@@ -187,12 +194,12 @@ class Embedder:
         """Store embeddings in the cache."""
         for content, vector in embeddings.items():
             blob = vector.tobytes()
-            self.conn.execute(
+            self._db_conn.execute(
                 "INSERT OR REPLACE INTO embeddings (content, vector) VALUES (?, ?)",
                 (content, blob),
             )
-        self.conn.commit()
+        self._db_conn.commit()
 
     def close(self) -> None:
         """Close DB connection."""
-        self.conn.close()
+        self._db_conn.close()

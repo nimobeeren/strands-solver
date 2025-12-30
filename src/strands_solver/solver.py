@@ -52,13 +52,15 @@ class Solver:
         If ranking is not possible (embeddings database not available), returns
         solutions in arbitrary order.
         """
-        can_rank = self._ranker.can_rank()
+        can_rank = await self._ranker.can_rank()
         if not can_rank:
             logger.warning(
-                "Dictionary embeddings database not found or incomplete. "
-                "This means we can't accurately determine the best solution, "
-                "but we can still find all solutions. "
-                "See README.md for instructions on generating dictionary embeddings."
+                "Cannot perform solution ranking due to missing GEMINI_API_KEY or "
+                "incomplete dictionary embeddings database. "
+                "To solve this, set the GEMINI_API_KEY environment variable and "
+                "see README.md for instructions on generating dictionary embeddings. "
+                "Without ranking, we cannot accurately determine the best solution, "
+                "but we can still find all solutions."
             )
 
         solutions = self.find_all_solutions()

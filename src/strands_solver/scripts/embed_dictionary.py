@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 def get_cached_words(embedder: Embedder) -> set[str]:
     """Returns the set of words already in the cache."""
-    cursor = embedder.conn.execute("SELECT content FROM embeddings")
+    cursor = embedder._db_conn.execute("SELECT content FROM embeddings")
     return {row[0] for row in cursor.fetchall()}
 
 

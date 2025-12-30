@@ -10,7 +10,7 @@ from strands_solver.solution_ranker import SolutionRanker
 @pytest.mark.asyncio
 async def test_rank():
     embedder = Mock()
-    embedder.can_get_embeddings = Mock(return_value=True)
+    embedder.can_get_embeddings = AsyncMock(return_value=True)
     embedder.get_embeddings = AsyncMock(
         return_value={
             "theme": np.array([1.0, 0.0, 0.0], dtype=np.float32),
@@ -48,7 +48,8 @@ async def test_rank():
 @pytest.mark.asyncio
 async def test_rank_raises_when_cannot_rank():
     embedder = Mock()
-    embedder.can_get_embeddings = Mock(return_value=False)
+    embedder.can_get_embeddings = AsyncMock(return_value=False)
+    embedder.get_embeddings = AsyncMock()
     ranker = SolutionRanker(embedder)
     puzzle = Puzzle(name="test", theme="theme", grid=[["X"]], num_words=2)
 

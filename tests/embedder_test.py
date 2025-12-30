@@ -10,8 +10,7 @@ from strands_solver.embedder import BATCH_SIZE, Embedder
 def embedder(tmp_path):
     """Embedder with temp SQLite DB."""
     db_path = tmp_path / "test_embeddings.db"
-    with patch("strands_solver.embedder.genai.Client"):
-        emb = Embedder(db_path=db_path)
+    emb = Embedder(db_path=db_path)
     yield emb
     emb.close()
 
@@ -60,12 +59,15 @@ async def test_get_embeddings_uncached_calls_api(embedder, mock_embedding):
     mock_emb = MagicMock()
     mock_emb.values = mock_embedding.tolist()
     mock_response.embeddings = [mock_emb]
-    embedder.client.models.embed_content = AsyncMock(return_value=mock_response)
 
-    result = await embedder.get_embeddings(["test"], cached=False)
+    mock_client = MagicMock()
+    mock_client.aio.models.embed_content = AsyncMock(return_value=mock_response)
+
+    with patch("strands_solver.embedder.genai.Client", return_value=mock_client):
+        result = await embedder.get_embeddings(["test"], cached=False)
 
     assert result["test"] == pytest.approx(mock_embedding, rel=1e-5)
-    embedder.client.models.embed_content.assert_called_once()
+    mock_client.aio.models.embed_content.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -80,11 +82,13 @@ async def test_get_embeddings_batches_large_requests(embedder, mock_embedding):
         ]
         return resp
 
-    embedder.client.models.embed_content = AsyncMock(
+    mock_client = MagicMock()
+    mock_client.aio.models.embed_content = AsyncMock(
         side_effect=[make_response(BATCH_SIZE), make_response(10)]
     )
 
-    result = await embedder.get_embeddings(contents, cached=False)
+    with patch("strands_solver.embedder.genai.Client", return_value=mock_client):
+        result = await embedder.get_embeddings(contents, cached=False)
 
     assert len(result) == len(contents)
-    assert embedder.client.models.embed_content.call_count == 2
+    assert mock_client.aio.models.embed_content.call_count == 2
