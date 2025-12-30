@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import numpy as np
 import pytest
 
-from strands_solver.embedder import BATCH_SIZE, Embedder
+from strands_solver.embedder import BATCH_SIZE, EmbeddingNotFoundError, Embedder
 
 
 @pytest.fixture
@@ -36,8 +36,8 @@ async def test_store_and_retrieve_embeddings(embedder, mock_embedding):
 
 @pytest.mark.asyncio
 async def test_get_embeddings_cached_raises_on_missing(embedder):
-    """cached=True raises KeyError for missing content."""
-    with pytest.raises(KeyError, match="not found in cache"):
+    """cached=True raises EmbeddingNotFoundError for missing content."""
+    with pytest.raises(EmbeddingNotFoundError, match="Embedding not found"):
         await embedder.get_embeddings(["nonexistent"], cached=True)
 
 
@@ -53,8 +53,10 @@ async def test_store_embeddings_overwrites_existing(embedder, mock_embedding):
 
 
 @pytest.mark.asyncio
-async def test_get_embeddings_uncached_calls_api(embedder, mock_embedding):
+async def test_get_embeddings_uncached_calls_api(embedder, mock_embedding, monkeypatch):
     """cached=False calls Gemini API."""
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+
     mock_response = MagicMock()
     mock_emb = MagicMock()
     mock_emb.values = mock_embedding.tolist()
@@ -71,8 +73,12 @@ async def test_get_embeddings_uncached_calls_api(embedder, mock_embedding):
 
 
 @pytest.mark.asyncio
-async def test_get_embeddings_batches_large_requests(embedder, mock_embedding):
+async def test_get_embeddings_batches_large_requests(
+    embedder, mock_embedding, monkeypatch
+):
     """Requests >BATCH_SIZE are split."""
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+
     contents = [f"content{i}" for i in range(BATCH_SIZE + 10)]
 
     def make_response(batch_size):

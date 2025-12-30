@@ -1,7 +1,7 @@
 import logging
 
 from .common import Puzzle, Solution
-from .embedder import Embedder
+from .embedder import ApiKeyError, EmbeddingNotFoundError, Embedder
 from .grid_coverer import GridCoverer
 from .solution_ranker import SolutionRanker
 from .spangram_finder import SpangramFinder
@@ -49,23 +49,27 @@ class Solver:
     async def solve(self) -> list[Solution]:
         """Solve the puzzle and return all solutions, ranked from best to worst.
 
-        If ranking is not possible (embeddings database not available), returns
-        solutions in arbitrary order.
+        If ranking fails, logs a warning and returns solutions in arbitrary order.
         """
-        can_rank = await self._ranker.can_rank()
-        if not can_rank:
-            logger.warning(
-                "Cannot perform solution ranking due to missing GEMINI_API_KEY or "
-                "incomplete dictionary embeddings database. "
-                "To solve this, set the GEMINI_API_KEY environment variable and "
-                "see README.md for instructions on generating dictionary embeddings. "
-                "Without ranking, we cannot accurately determine the best solution, "
-                "but we can still find all solutions."
-            )
-
         solutions = self.find_all_solutions()
-        if can_rank:
-            solutions = await self._ranker.rank(list(solutions), self._puzzle)
-        else:
-            solutions = list(solutions)
-        return solutions
+        try:
+            return await self._ranker.rank(list(solutions), self._puzzle)
+        except (ApiKeyError, EmbeddingNotFoundError) as e:
+            if isinstance(e, ApiKeyError):
+                logger.warning(
+                    "Cannot rank solutions due to missing/invalid GEMINI_API_KEY. "
+                    "To fix this, set the GEMINI_API_KEY environment variable."
+                )
+            elif isinstance(e, EmbeddingNotFoundError):
+                logger.warning(
+                    f"Cannot rank solutions due to missing dictionary embeddings: {e} "
+                    "See README.md for instructions on generating dictionary embeddings."
+                )
+            else:
+                raise
+
+            logger.warning(
+                "Continuing without solution ranking. "
+                "This means the best solution cannot be accurately determined."
+            )
+            return list(solutions)

@@ -4,13 +4,13 @@ import numpy as np
 import pytest
 
 from strands_solver.common import Puzzle, Solution, Strand
+from strands_solver.embedder import ApiKeyError, EmbeddingNotFoundError
 from strands_solver.solution_ranker import SolutionRanker
 
 
 @pytest.mark.asyncio
 async def test_rank():
     embedder = Mock()
-    embedder.can_get_embeddings = AsyncMock(return_value=True)
     embedder.get_embeddings = AsyncMock(
         return_value={
             "theme": np.array([1.0, 0.0, 0.0], dtype=np.float32),
@@ -46,23 +46,39 @@ async def test_rank():
 
 
 @pytest.mark.asyncio
-async def test_rank_raises_when_cannot_rank():
+async def test_rank_raises_on_missing_embedding():
     embedder = Mock()
-    embedder.can_get_embeddings = AsyncMock(return_value=False)
-    embedder.get_embeddings = AsyncMock()
+    embedder.get_embeddings = AsyncMock(
+        side_effect=EmbeddingNotFoundError("Embedding not found for 'MISSING'")
+    )
     ranker = SolutionRanker(embedder)
     puzzle = Puzzle(name="test", theme="theme", grid=[["X"]], num_words=2)
 
-    solution1 = Solution(
+    solution = Solution(
         spangram=(Strand(positions=((0, 0),), string="CAT"),),
         non_spangram_strands=frozenset({Strand(positions=((1, 0),), string="DOG")}),
     )
-    solution2 = Solution(
-        spangram=(Strand(positions=((0, 0),), string="XYZ"),),
-        non_spangram_strands=frozenset({Strand(positions=((1, 0),), string="ABC")}),
+
+    with pytest.raises(EmbeddingNotFoundError):
+        await ranker.rank([solution], puzzle)
+
+
+@pytest.mark.asyncio
+async def test_rank_raises_on_api_key_missing():
+    embedder = Mock()
+    embedder.get_embeddings = AsyncMock(
+        side_effect=[
+            {"CAT": np.array([0.9, 0.1, 0.0], dtype=np.float32)},
+            ApiKeyError("GEMINI_API_KEY environment variable is not set"),
+        ]
+    )
+    ranker = SolutionRanker(embedder)
+    puzzle = Puzzle(name="test", theme="theme", grid=[["X"]], num_words=2)
+
+    solution = Solution(
+        spangram=(Strand(positions=((0, 0),), string="CAT"),),
+        non_spangram_strands=frozenset(),
     )
 
-    with pytest.raises(RuntimeError, match="Cannot rank solutions"):
-        await ranker.rank([solution1, solution2], puzzle)
-
-    embedder.get_embeddings.assert_not_called()
+    with pytest.raises(ApiKeyError):
+        await ranker.rank([solution], puzzle)

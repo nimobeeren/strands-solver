@@ -2,10 +2,21 @@
 
 A solver for Strands, the New York Times puzzle game.
 
-## Usage
+## Prerequisites
+
+**Required**
+
+- Install the [uv](https://docs.astral.sh/uv/) package manager.
+
+**Optional**
+
+1. Set the `GEMINI_API_KEY` environment variable to your Gemini API key.
+2. Follow [Generating Dictionary Embeddings](#generating-dictionary-embeddings).
 
 > [!NOTE]
-> To run these examples you need the [uv](https://docs.astral.sh/uv/) package manager.
+> Without the optional steps the solver will try to find a valid solution but it can't accurately which solution is best of all.
+
+## Usage
 
 ```bash
 uv run strands-solver today  # solve today's puzzle

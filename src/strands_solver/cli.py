@@ -90,7 +90,7 @@ async def async_main():
 
     best = solutions[0]
 
-    logging.info("Best solution:\n")
+    logging.info("Solution:\n")
     draw(puzzle.grid, best)
     print()
 

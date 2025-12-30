@@ -10,7 +10,7 @@ import numpy.typing as npt
 import sqlite_vec
 from google import genai
 from google.genai.types import ContentListUnion, EmbedContentConfig
-from tenacity import RetryCallState, retry
+from tenacity import RetryCallState, RetryError, retry
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +18,18 @@ logger = logging.getLogger(__name__)
 BATCH_SIZE = 100  # Gemini Embedding API limit
 MAX_CONCURRENT_REQUESTS = 10
 DEFAULT_DB_PATH = Path(__file__).parent.parent.parent / "data" / "embeddings.db"
+
+
+class EmbeddingNotFoundError(Exception):
+    """Raised when a required embedding is not found in the cache."""
+
+    pass
+
+
+class ApiKeyError(Exception):
+    """Raised when the Gemini API key is missing or invalid."""
+
+    pass
 
 
 class Embedder:
@@ -41,56 +53,24 @@ class Embedder:
         """)
         self._db_conn.commit()
 
-    async def can_get_embeddings(self, cached: bool) -> bool:
-        """Check if embeddings can be retrieved.
-
-        Args:
-            cached: If True, checks if the database contains all dictionary words.
-                If False, checks if the Gemini API is accessible.
-        """
-        if cached:
-            try:
-                from .dictionary import load_dictionary
-
-                dictionary = list(load_dictionary())
-
-                # Check if all dictionary words appear in the database (batched)
-                batch_size = 1000
-                found_count = 0
-                for i in range(0, len(dictionary), batch_size):
-                    batch = dictionary[i : i + batch_size]
-                    placeholders = ",".join("?" * len(batch))
-                    cursor = self._db_conn.execute(
-                        f"SELECT COUNT(*) FROM embeddings WHERE content IN ({placeholders})",
-                        batch,
-                    )
-                    found_count += cursor.fetchone()[0]
-
-                return found_count >= len(dictionary)
-            except Exception:
-                logger.exception(
-                    "Exception occurred while checking embeddings availability, "
-                    "assuming embeddings are not available."
-                )
-                return False
-        else:
-            # First check if API key is set to avoid noisy errors from genai library
-            if not os.environ.get("GEMINI_API_KEY"):
-                return False
-            try:
-                await genai.Client().aio.models.list()
-                return True
-            except Exception:
-                return False
-
     def _is_rate_limit_error(self, exc: BaseException) -> bool:
         exc_str = str(exc).lower()
         return "429" in exc_str or "rate" in exc_str or "quota" in exc_str
+
+    def _is_client_error(self, exc: BaseException) -> bool:
+        """Check if this is a 4xx client error (except rate limiting)."""
+        exc_str = str(exc)
+        # Match "400", "401", "403", etc. but not "429" (rate limit)
+        return any(f"{code}" in exc_str for code in range(400, 429)) or any(
+            f"{code}" in exc_str for code in range(430, 500)
+        )
 
     def _should_stop_retry(self, retry_state: RetryCallState) -> bool:
         exc = retry_state.outcome.exception() if retry_state.outcome else None
         if exc and self._is_rate_limit_error(exc):
             return False  # Never stop for rate limit errors
+        if exc and self._is_client_error(exc):
+            return True  # Don't retry client errors (invalid API key, etc.)
         return retry_state.attempt_number >= 5
 
     def _get_retry_wait(self, retry_state: RetryCallState) -> float:
@@ -115,6 +95,9 @@ class Embedder:
             )
 
     async def _embed_batch(self, batch: Sequence[str]) -> list[npt.NDArray[np.float32]]:
+        if not os.getenv("GEMINI_API_KEY"):
+            raise ApiKeyError("GEMINI_API_KEY environment variable is not set")
+
         @retry(
             stop=self._should_stop_retry,
             wait=self._get_retry_wait,
@@ -134,7 +117,14 @@ class Embedder:
             return result
 
         async with self._semaphore:
-            return await _call_api()
+            try:
+                return await _call_api()
+            except RetryError as e:
+                # Check underlying cause for API key errors
+                cause = e.last_attempt.exception()
+                if cause and "API_KEY_INVALID" in str(cause):
+                    raise ApiKeyError("GEMINI_API_KEY is invalid") from e
+                raise
 
     async def get_embeddings(
         self, contents: Sequence[str], cached: bool = True, store: bool = False
@@ -157,7 +147,9 @@ class Embedder:
                     "SELECT vector FROM embeddings WHERE content = ?", (content,)
                 ).fetchone()
                 if row is None:
-                    raise KeyError(f"Content not found in cache: {content!r}")
+                    raise EmbeddingNotFoundError(
+                        f"Embedding not found for {content!r}. "
+                    )
                 blob: bytes = row[0]
                 result[content] = np.frombuffer(blob, dtype=np.float32).copy()
             return result
