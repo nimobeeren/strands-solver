@@ -10,6 +10,7 @@ from strands_solver.solution_ranker import SolutionRanker
 @pytest.mark.asyncio
 async def test_rank():
     embedder = Mock()
+    embedder.can_get_embeddings = Mock(return_value=True)
     embedder.get_embeddings = AsyncMock(
         return_value={
             "theme": np.array([1.0, 0.0, 0.0], dtype=np.float32),
@@ -42,3 +43,25 @@ async def test_rank():
 
     ranked = await ranker.rank([solution1, solution2], puzzle)
     assert ranked == [solution1, solution2]
+
+
+@pytest.mark.asyncio
+async def test_rank_raises_when_cannot_rank():
+    embedder = Mock()
+    embedder.can_get_embeddings = Mock(return_value=False)
+    ranker = SolutionRanker(embedder)
+    puzzle = Puzzle(name="test", theme="theme", grid=[["X"]], num_words=2)
+
+    solution1 = Solution(
+        spangram=(Strand(positions=((0, 0),), string="CAT"),),
+        non_spangram_strands=frozenset({Strand(positions=((1, 0),), string="DOG")}),
+    )
+    solution2 = Solution(
+        spangram=(Strand(positions=((0, 0),), string="XYZ"),),
+        non_spangram_strands=frozenset({Strand(positions=((1, 0),), string="ABC")}),
+    )
+
+    with pytest.raises(RuntimeError, match="Cannot rank solutions"):
+        await ranker.rank([solution1, solution2], puzzle)
+
+    embedder.get_embeddings.assert_not_called()

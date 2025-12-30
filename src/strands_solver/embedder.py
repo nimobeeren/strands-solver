@@ -41,6 +41,41 @@ class Embedder:
         """)
         self.conn.commit()
 
+    def can_get_embeddings(self, cached: bool) -> bool:
+        """Check if embeddings can be retrieved.
+
+        Args:
+            cached: If True, checks if the database contains all dictionary words.
+                If False, always returns True (API is assumed available).
+        """
+        if not cached:
+            return True
+
+        try:
+            from .dictionary import load_dictionary
+
+            dictionary = list(load_dictionary())
+
+            # Check if all dictionary words appear in the database (batched)
+            batch_size = 1000
+            found_count = 0
+            for i in range(0, len(dictionary), batch_size):
+                batch = dictionary[i : i + batch_size]
+                placeholders = ",".join("?" * len(batch))
+                cursor = self.conn.execute(
+                    f"SELECT COUNT(*) FROM embeddings WHERE content IN ({placeholders})",
+                    batch,
+                )
+                found_count += cursor.fetchone()[0]
+
+            return found_count >= len(dictionary)
+        except Exception:
+            logger.exception(
+                "Exception occurred while checking embeddings availability, "
+                "assuming embeddings are not available."
+            )
+            return False
+
     def _is_rate_limit_error(self, exc: BaseException) -> bool:
         exc_str = str(exc).lower()
         return "429" in exc_str or "rate" in exc_str or "quota" in exc_str

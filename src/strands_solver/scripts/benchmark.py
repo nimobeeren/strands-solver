@@ -240,8 +240,8 @@ async def main() -> int:
         "-e",
         "--end-date",
         type=str,
-        default="2025-12-31",
-        help="End date (YYYY-MM-DD or 'today'). Default: 2025-12-31",
+        default="2025-09-30",
+        help="End date (YYYY-MM-DD or 'today'). Default: 2025-09-30",
     )
     parser.add_argument(
         "-t",

@@ -47,6 +47,23 @@ class Solver:
         return solutions
 
     async def solve(self) -> list[Solution]:
-        """Solve the puzzle and return all solutions, ranked from best to worst."""
+        """Solve the puzzle and return all solutions, ranked from best to worst.
+
+        If ranking is not possible (embeddings database not available), returns
+        solutions in arbitrary order.
+        """
+        can_rank = self._ranker.can_rank()
+        if not can_rank:
+            logger.warning(
+                "Dictionary embeddings database not found or incomplete. "
+                "This means we can't accurately determine the best solution, "
+                "but we can still find all solutions. "
+                "See README.md for instructions on generating dictionary embeddings."
+            )
+
         solutions = self.find_all_solutions()
-        return await self._ranker.rank(list(solutions), self._puzzle)
+        if can_rank:
+            solutions = await self._ranker.rank(list(solutions), self._puzzle)
+        else:
+            solutions = list(solutions)
+        return solutions
