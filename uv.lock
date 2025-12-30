@@ -605,6 +605,18 @@ wheels = [
 ]
 
 [[package]]
+name = "mdpd"
+version = "0.2.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pandas" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2f/ec/b31ac809b79e1baa0550e60325273ef437fdde77a65aaa68bdc2b3e82ef9/mdpd-0.2.1.tar.gz", hash = "sha256:041bcd0faabddc8982f70432b71ebe033442f6d495ae4026678ace1b8c4f9897", size = 2834, upload-time = "2023-10-15T08:04:38.646Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d7/9c/f8c498687901bf5c39e05015ea17e689d7f5e68b19a0d5e0c22edb309997/mdpd-0.2.1-py3-none-any.whl", hash = "sha256:7735776f1fa96ac318e89e536aa0e8a9a896163e042d57b1e1c43298d6f6fc26", size = 3449, upload-time = "2023-10-15T08:04:37.099Z" },
+]
+
+[[package]]
 name = "mdurl"
 version = "0.1.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1251,6 +1263,7 @@ dependencies = [
 dev = [
     { name = "ipykernel" },
     { name = "matplotlib" },
+    { name = "mdpd" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "pyright" },
@@ -1258,6 +1271,7 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "python-dotenv" },
     { name = "ruff" },
+    { name = "tabulate" },
     { name = "tiktoken" },
 ]
 
@@ -1274,6 +1288,7 @@ requires-dist = [
 dev = [
     { name = "ipykernel", specifier = ">=6.30.1" },
     { name = "matplotlib", specifier = ">=3.10.6" },
+    { name = "mdpd", specifier = ">=0.2.1" },
     { name = "numpy", specifier = ">=2.3.3" },
     { name = "pandas", specifier = ">=2.3.3" },
     { name = "pyright", specifier = ">=1.1.407" },
@@ -1281,7 +1296,17 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=1.3.0" },
     { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "ruff", specifier = ">=0.14.6" },
+    { name = "tabulate", specifier = ">=0.9.0" },
     { name = "tiktoken", specifier = ">=0.11.0" },
+]
+
+[[package]]
+name = "tabulate"
+version = "0.9.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ec/fe/802052aecb21e3797b8f7902564ab6ea0d60ff8ca23952079064155d1ae1/tabulate-0.9.0.tar.gz", hash = "sha256:0095b12bf5966de529c0feb1fa08671671b3368eec77d7ef7ab114be2c068b3c", size = 81090, upload-time = "2022-10-06T17:21:48.54Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/40/44/4a5f08c96eb108af5cb50b41f76142f0afa346dfa99d5296fe7202a11854/tabulate-0.9.0-py3-none-any.whl", hash = "sha256:024ca478df22e9340661486f85298cff5f6dcdba14f3813e8830015b9ed1948f", size = 35252, upload-time = "2022-10-06T17:21:44.262Z" },
 ]
 
 [[package]]

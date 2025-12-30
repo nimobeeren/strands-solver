@@ -79,6 +79,22 @@ where the strands are
 
 This is the "correct" solution as provided by the New York Times. There are other valid solutions, but not all match the theme.
 
+## Benchmarking
+
+### Results
+
+The solver has been run on a subset of puzzles. The results are recorded in [RESULTS.md](./RESULTS.md).
+
+### Running the Benchmark
+
+To run the solver against a set of puzzles and validate results:
+
+```bash
+uv run -m strands_solver.scripts.benchmark
+```
+
+See `--help` for options including date ranges, timeout, and output file.
+
 ## Motivation
 
 I started this project to try out modern coding agents on a non-trivial but easy to validate problem. I expected a little vibe-coding would get me most of the way there, but the problem proved to be a lot more challenging than I thought! Along the way though, I learned to collaborate with my coding agent in a way that truly extended my abilities.
