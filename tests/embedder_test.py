@@ -64,7 +64,7 @@ async def test_get_embeddings_default_cache_hit(embedder):
 
 @pytest.mark.asyncio
 async def test_get_embeddings_default_cache_miss(embedder, api_embeddings):
-    """DEFAULT with cache miss: fetches from API, stores in cache."""
+    """DEFAULT with cache miss: generates using API, stores in cache."""
     embedding = np.array([0.1, 0.2, 0.3], dtype=np.float32)
     api_embeddings["hello"] = embedding
     api_embeddings["world"] = embedding * 2
@@ -85,7 +85,8 @@ async def test_get_embeddings_default_cache_miss(embedder, api_embeddings):
 
 @pytest.mark.asyncio
 async def test_get_embeddings_default_partial_cache_hit(embedder, api_embeddings):
-    """DEFAULT with partial cache hit: returns cached, fetches missing from API, stores fetched."""
+    """DEFAULT with partial cache hit: returns cached, generates missing using API,
+    stores generated."""
     cached_embedding = np.array([0.1, 0.2, 0.3], dtype=np.float32)
     api_embedding = np.array([0.4, 0.5, 0.6], dtype=np.float32)
 
@@ -107,7 +108,7 @@ async def test_get_embeddings_default_partial_cache_hit(embedder, api_embeddings
 
 @pytest.mark.asyncio
 async def test_get_embeddings_reload(embedder, api_embeddings):
-    """RELOAD: skips cache, fetches from API, overwrites cache with new value."""
+    """RELOAD: skips cache, generates using API, overwrites cache with new value."""
     old_embedding = np.array([0.1, 0.1, 0.1], dtype=np.float32)
     new_embedding = np.array([0.9, 0.9, 0.9], dtype=np.float32)
 
@@ -126,7 +127,7 @@ async def test_get_embeddings_reload(embedder, api_embeddings):
 
 @pytest.mark.asyncio
 async def test_get_embeddings_no_store(embedder, api_embeddings):
-    """NO_STORE: skips cache read, fetches from API, does not store in cache."""
+    """NO_STORE: skips cache read, generates using API, does not store in cache."""
     embedding = np.array([0.1, 0.2, 0.3], dtype=np.float32)
     api_embeddings["content"] = embedding
 

@@ -25,11 +25,11 @@ class CachePolicy(Enum):
     """Cache policy based on JavaScript Fetch API."""
 
     DEFAULT = "default"
-    """Read cache → fetch fallback → store"""
+    """Read cache → generate fallback → store"""
     RELOAD = "reload"
-    """Skip read → fetch → store"""
+    """Skip read → generate → store"""
     NO_STORE = "no-store"
-    """Skip read → fetch → skip store"""
+    """Skip read → generate → skip store"""
     ONLY_IF_CACHED = "only-if-cached"
     """Read cache only → error if miss"""
 
@@ -150,10 +150,10 @@ class Embedder:
         blob: bytes = row[0]
         return np.frombuffer(blob, dtype=np.float32).copy()
 
-    async def _fetch(
+    async def _generate(
         self, contents: list[str], *, store: bool
     ) -> dict[str, npt.NDArray[np.float32]]:
-        """Fetch embeddings from API and optionally store them."""
+        """Generate embeddings using API and optionally store them."""
         if not contents:
             return {}
 
@@ -199,24 +199,24 @@ class Embedder:
 
         match cache_policy:
             case CachePolicy.DEFAULT:
-                # Read cache → fetch fallback → store
-                to_fetch: list[str] = []
+                # Read cache → generate fallback → store
+                to_generate: list[str] = []
                 for content in contents:
                     cached = self._get_cached(content)
                     if cached is not None:
                         result[content] = cached
                     else:
-                        to_fetch.append(content)
-                fetched = await self._fetch(to_fetch, store=True)
-                result.update(fetched)
+                        to_generate.append(content)
+                generated = await self._generate(to_generate, store=True)
+                result.update(generated)
             case CachePolicy.RELOAD:
-                # Skip read → fetch → store
-                fetched = await self._fetch(list(contents), store=True)
-                result.update(fetched)
+                # Skip read → generate → store
+                generated = await self._generate(list(contents), store=True)
+                result.update(generated)
             case CachePolicy.NO_STORE:
-                # Skip read → fetch → skip store
-                fetched = await self._fetch(list(contents), store=False)
-                result.update(fetched)
+                # Skip read → generate → skip store
+                generated = await self._generate(list(contents), store=False)
+                result.update(generated)
             case CachePolicy.ONLY_IF_CACHED:
                 # Read cache only → error if miss
                 for content in contents:
