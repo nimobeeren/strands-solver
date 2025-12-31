@@ -58,8 +58,8 @@ async def test_get_embeddings_default_cache_hit(embedder):
         ["hello", "world"], cache_policy=CachePolicy.DEFAULT
     )
 
-    assert result["hello"] == pytest.approx(embedding, rel=1e-5)
-    assert result["world"] == pytest.approx(embedding * 2, rel=1e-5)
+    assert np.array_equal(result["hello"], embedding)
+    assert np.array_equal(result["world"], embedding * 2)
 
 
 @pytest.mark.asyncio
@@ -73,14 +73,14 @@ async def test_get_embeddings_default_cache_miss(embedder, api_embeddings):
         ["hello", "world"], cache_policy=CachePolicy.DEFAULT
     )
 
-    assert result["hello"] == pytest.approx(embedding, rel=1e-5)
-    assert result["world"] == pytest.approx(embedding * 2, rel=1e-5)
+    assert np.array_equal(result["hello"], embedding)
+    assert np.array_equal(result["world"], embedding * 2)
 
     cached = await embedder.get_embeddings(
         ["hello", "world"], cache_policy=CachePolicy.ONLY_IF_CACHED
     )
-    assert cached["hello"] == pytest.approx(embedding, rel=1e-5)
-    assert cached["world"] == pytest.approx(embedding * 2, rel=1e-5)
+    assert np.array_equal(cached["hello"], embedding)
+    assert np.array_equal(cached["world"], embedding * 2)
 
 
 @pytest.mark.asyncio
@@ -96,13 +96,13 @@ async def test_get_embeddings_default_partial_cache_hit(embedder, api_embeddings
         ["cached_content", "uncached_content"], cache_policy=CachePolicy.DEFAULT
     )
 
-    assert result["cached_content"] == pytest.approx(cached_embedding, rel=1e-5)
-    assert result["uncached_content"] == pytest.approx(api_embedding, rel=1e-5)
+    assert np.array_equal(result["cached_content"], cached_embedding)
+    assert np.array_equal(result["uncached_content"], api_embedding)
 
     cached = await embedder.get_embeddings(
         ["uncached_content"], cache_policy=CachePolicy.ONLY_IF_CACHED
     )
-    assert cached["uncached_content"] == pytest.approx(api_embedding, rel=1e-5)
+    assert np.array_equal(cached["uncached_content"], api_embedding)
 
 
 @pytest.mark.asyncio
@@ -116,12 +116,12 @@ async def test_get_embeddings_reload(embedder, api_embeddings):
 
     result = await embedder.get_embeddings(["content"], cache_policy=CachePolicy.RELOAD)
 
-    assert result["content"] == pytest.approx(new_embedding, rel=1e-5)
+    assert np.array_equal(result["content"], new_embedding)
 
     cached = await embedder.get_embeddings(
         ["content"], cache_policy=CachePolicy.ONLY_IF_CACHED
     )
-    assert cached["content"] == pytest.approx(new_embedding, rel=1e-5)
+    assert np.array_equal(cached["content"], new_embedding)
 
 
 @pytest.mark.asyncio
@@ -134,7 +134,7 @@ async def test_get_embeddings_no_store(embedder, api_embeddings):
         ["content"], cache_policy=CachePolicy.NO_STORE
     )
 
-    assert result["content"] == pytest.approx(embedding, rel=1e-5)
+    assert np.array_equal(result["content"], embedding)
 
     with pytest.raises(EmbeddingNotFoundError):
         await embedder.get_embeddings(
@@ -152,7 +152,7 @@ async def test_get_embeddings_only_if_cached_cache_hit(embedder):
         ["content"], cache_policy=CachePolicy.ONLY_IF_CACHED
     )
 
-    assert result["content"] == pytest.approx(embedding, rel=1e-5)
+    assert np.array_equal(result["content"], embedding)
 
 
 @pytest.mark.asyncio
@@ -198,4 +198,4 @@ async def test_store_embeddings_overwrites_existing(embedder):
         ["content"], cache_policy=CachePolicy.ONLY_IF_CACHED
     )
 
-    assert result["content"] == pytest.approx(new_embedding, rel=1e-5)
+    assert np.array_equal(result["content"], new_embedding)
