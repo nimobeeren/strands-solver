@@ -157,6 +157,8 @@ class Embedder:
         if not contents:
             return {}
 
+        logger.info(f"Generating {len(contents)} embeddings")
+
         batches = [
             contents[i : i + BATCH_SIZE] for i in range(0, len(contents), BATCH_SIZE)
         ]

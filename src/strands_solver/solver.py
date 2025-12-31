@@ -32,11 +32,11 @@ class Solver:
         """Returns a set of solutions, where each solution is a set of strands covering
         the grid including at least one spangram. The solutions are not ranked.
         """
-        logger.info("Finding words")
+        logger.info("Finding words in grid")
         words = self._finder.find_all_words()
         logger.info(f"Found {len(words)} words")
 
-        logger.info("Covering grid")
+        logger.info("Covering grid with words")
         covers = self._coverer.cover(words)
         logger.info(f"Found {len(covers)} covers")
 
@@ -53,7 +53,10 @@ class Solver:
         """
         solutions = self.find_all_solutions()
         try:
-            return await self._ranker.rank(list(solutions), self._puzzle)
+            logger.info(f"Ranking {len(solutions)} solutions")
+            ranked = await self._ranker.rank(list(solutions), self._puzzle)
+            logger.info("Ranked solutions")
+            return ranked
         except (ApiKeyError, EmbeddingNotFoundError) as e:
             if isinstance(e, ApiKeyError):
                 logger.warning(

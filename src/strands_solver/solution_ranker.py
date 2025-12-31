@@ -49,17 +49,17 @@ class SolutionRanker:
             for strand in solution.non_spangram_strands:
                 all_words.add(strand.string)
 
-        logging.info(f"Getting embeddings for {len(all_words)} words + theme")
+        logger.info("Getting embeddings")
         all_contents = list(all_words) + [puzzle.theme]
         embeddings = await self.embedder.get_embeddings(all_contents)
-        logging.info("Got all embeddings")
+        logger.info("Got embeddings")
 
-        logging.info(f"Computing similarity scores for {len(solutions)} solutions")
+        logger.info(f"Computing similarity scores for {len(embeddings)} embeddings")
         ranked = sorted(
             solutions,
             key=lambda s: _avg_word_similarity(s, puzzle.theme, embeddings),
             reverse=True,
         )
-        logging.info("Finished computing similarity scores")
+        logger.info("Computed similarity scores")
 
         return ranked
