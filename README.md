@@ -142,8 +142,11 @@ I was really happy with this workflow. My coding agent could look at my code, su
 ### Tests
 
 ```bash
-uv run pytest
+uv run pytest  # unit tests
+uv run pytest -m e2e  # end-to-end tests
 ```
+
+Unit tests are fast and reliable because they have no external dependencies. End-to-end tests are more realistic, but can be flaky because they rely on external systems.
 
 ### Type Checking
 

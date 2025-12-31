@@ -46,3 +46,5 @@ where = ["src"]
 [tool.pytest.ini_options]
 log_cli = true
 log_cli_level = "INFO"
+markers = ["e2e: end-to-end tests that have external dependencies"]
+addopts = "-m 'not e2e'"  # only run non-e2e tests by default

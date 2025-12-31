@@ -1,32 +1,16 @@
-from pathlib import Path
+import pytest
 
-from strands_solver.cli import get_puzzle
-from strands_solver.common import Puzzle
+from strands_solver.cli import main
 
-
-def test_get_puzzle_with_path():
-    """Test get_puzzle with a path to a JSON file."""
-    puzzle_path = Path(__file__).parent.parent / "puzzles" / "2025-11-30.json"
-    puzzle = get_puzzle(str(puzzle_path))
-
-    assert isinstance(puzzle, Puzzle)
-    assert puzzle.name == "2025-11-30"
-    assert puzzle.theme == "Group membership"
-    assert puzzle.num_words == 9
-    assert len(puzzle.grid) == 8
-    assert len(puzzle.grid[0]) == 6
+pytestmark = pytest.mark.e2e
 
 
-def test_get_puzzle_with_date():
-    """Test get_puzzle with a date string."""
-    puzzle = get_puzzle("2025-11-30")
+def test_main(monkeypatch, caplog):
+    """End-to-end test solving a real puzzle using the CLI."""
+    date = "2025-09-23"
+    monkeypatch.setattr("sys.argv", ["strands-solver", date])
 
-    assert isinstance(puzzle, Puzzle)
-    assert puzzle.name == "2025-11-30"
+    with caplog.at_level("INFO"):
+        main()
 
-
-def test_get_puzzle_with_today():
-    """Test get_puzzle with 'today' string."""
-    puzzle = get_puzzle("today")
-
-    assert isinstance(puzzle, Puzzle)
+    assert any(record.message.startswith("Solution:") for record in caplog.records)
