@@ -4,17 +4,11 @@ A solver for Strands, the New York Times puzzle game.
 
 ## Prerequisites
 
-**Required**
-
-- Install the [uv](https://docs.astral.sh/uv/) package manager.
-
-**Optional**
-
-1. Set the `GEMINI_API_KEY` environment variable to your Gemini API key.
-2. Follow [Generating Dictionary Embeddings](#generating-dictionary-embeddings).
+- Install the [uv](https://docs.astral.sh/uv/) package manager
+- (Optional) Set the `GEMINI_API_KEY` environment variable to a valid Gemini API key
 
 > [!NOTE]
-> Without the optional steps the solver will try to find a valid solution but it can't accurately which solution is best of all.
+> Without an API key the solver will try to find valid solutions but it can't accurately determine which solution is best.
 
 ## Usage
 
@@ -174,7 +168,7 @@ uv run -m strands_solver.scripts.show_solution YYYY-MM-DD
 
 ### Generating Dictionary Embeddings
 
-The solver uses semantic embeddings to determine which solution best fits the theme. To save on costs, we don't generate these embeddings on the spot (potentially requiring many embeddings per puzzle). Instead, we generate embeddings for the entire dictionary in advance and cache the results in a SQLite database.
+The solver uses semantic embeddings to determine which solution best fits the theme. These embeddings are generated while solving a puzzle and cached for future use. However, when solving many puzzles (such as when running a benchmark), you may run into rate limits for the embedding API. To avoid this, you can generate embeddings ahead of time.
 
 Embedding the entire dictionary costs about $0.10 and takes about 60 minutes on a paid (Tier 1) Gemini project (based on 2025-12-30 pricing and rate limits). While it's technically possible to do on the free tier, this would take a very long time due to rate limits. Storing the embeddings database also uses about 2 GB of disk space.
 
@@ -184,10 +178,10 @@ To generate dictionary embeddings, run the `embed_dictionary` script:
 uv run -m strands_solver.scripts.embed_dictionary
 ```
 
-By default, we don't re-embed words that already appear in the database. To override this, use the `--force` flag:
+By default, we don't re-embed words that already appear in the database. To override this, use the `--reload` flag:
 
 ```bash
-uv run -m strands_solver.scripts.embed_dictionary --force
+uv run -m strands_solver.scripts.embed_dictionary --reload
 ```
 
 The embeddings database is stored in `data/embeddings.db`.

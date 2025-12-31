@@ -67,10 +67,7 @@ async def test_rank_raises_on_missing_embedding():
 async def test_rank_raises_on_api_key_missing():
     embedder = Mock()
     embedder.get_embeddings = AsyncMock(
-        side_effect=[
-            {"CAT": np.array([0.9, 0.1, 0.0], dtype=np.float32)},
-            ApiKeyError("GEMINI_API_KEY environment variable is not set"),
-        ]
+        side_effect=ApiKeyError("GEMINI_API_KEY environment variable is not set")
     )
     ranker = SolutionRanker(embedder)
     puzzle = Puzzle(name="test", theme="theme", grid=[["X"]], num_words=2)

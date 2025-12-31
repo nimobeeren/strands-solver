@@ -49,15 +49,9 @@ class SolutionRanker:
             for strand in solution.non_spangram_strands:
                 all_words.add(strand.string)
 
-        logging.info(f"Getting cached embeddings for {len(all_words)} words")
-        embeddings = await self.embedder.get_embeddings(list(all_words), cached=True)
-
-        logging.info("Embedding theme via API")
-        theme_embedding = await self.embedder.get_embeddings(
-            [puzzle.theme], cached=False
-        )
-
-        embeddings.update(theme_embedding)
+        logging.info(f"Getting embeddings for {len(all_words)} words + theme")
+        all_contents = list(all_words) + [puzzle.theme]
+        embeddings = await self.embedder.get_embeddings(all_contents)
         logging.info("Got all embeddings")
 
         logging.info(f"Computing similarity scores for {len(solutions)} solutions")

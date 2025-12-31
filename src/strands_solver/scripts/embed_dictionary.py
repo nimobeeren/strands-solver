@@ -8,7 +8,7 @@ import logging
 from dotenv import load_dotenv
 
 from strands_solver.dictionary import load_dictionary
-from strands_solver.embedder import Embedder
+from strands_solver.embedder import CachePolicy, Embedder
 
 load_dotenv()
 
@@ -20,24 +20,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def get_cached_words(embedder: Embedder) -> set[str]:
-    """Returns the set of words already in the cache."""
-    cursor = embedder._db_conn.execute("SELECT content FROM embeddings")
-    return {row[0] for row in cursor.fetchall()}
-
-
-async def embed_words(words: list[str], embedder: Embedder) -> None:
-    """Embeds words and stores them in the cache."""
-    logger.info(f"Embedding {len(words)} words...")
-    await embedder.get_embeddings(words, cached=False, store=True)
-
-
 async def main() -> None:
     parser = argparse.ArgumentParser(
         description="Embed dictionary words and store in cache."
     )
     parser.add_argument(
-        "--force",
+        "--reload",
         action="store_true",
         help="Re-embed all words, even if already cached.",
     )
@@ -49,22 +37,24 @@ async def main() -> None:
 
     embedder = Embedder()
     try:
-        if args.force:
+        if args.reload:
             words_to_embed = all_words
-            logger.info(f"Force mode: will embed all {len(words_to_embed)} words")
+            logger.info(f"Reload mode: will embed all {len(words_to_embed)} words")
+            await embedder.get_embeddings(
+                list(all_words), cache_policy=CachePolicy.RELOAD
+            )
         else:
-            cached_words = get_cached_words(embedder)
-            words_to_embed = all_words - cached_words
+            cached_contents = embedder.get_cached_contents()
+            words_to_embed = all_words - cached_contents
+            if not words_to_embed:
+                logger.info("Nothing to embed, all words are already cached.")
+                return
             logger.info(
-                f"Found {len(cached_words)} cached words, "
+                f"Found {len(cached_contents)} cached contents, "
                 f"{len(words_to_embed)} words to embed"
             )
+            await embedder.get_embeddings(list(words_to_embed))
 
-        if not words_to_embed:
-            logger.info("Nothing to embed, all words are already cached.")
-            return
-
-        await embed_words(list(words_to_embed), embedder)
         logger.info(f"Done! Embedded {len(words_to_embed)} words.")
     finally:
         embedder.close()

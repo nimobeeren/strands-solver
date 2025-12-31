@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import sqlite3
+from enum import Enum
 from pathlib import Path
 from typing import Sequence, cast
 
@@ -18,6 +19,19 @@ logger = logging.getLogger(__name__)
 BATCH_SIZE = 100  # Gemini Embedding API limit
 MAX_CONCURRENT_REQUESTS = 10
 DEFAULT_DB_PATH = Path(__file__).parent.parent.parent / "data" / "embeddings.db"
+
+
+class CachePolicy(Enum):
+    """Cache policy based on JavaScript Fetch API."""
+
+    DEFAULT = "default"
+    """Read cache → fetch fallback → store"""
+    RELOAD = "reload"
+    """Skip read → fetch → store"""
+    NO_STORE = "no-store"
+    """Skip read → fetch → skip store"""
+    ONLY_IF_CACHED = "only-if-cached"
+    """Read cache only → error if miss"""
 
 
 class EmbeddingNotFoundError(Exception):
@@ -126,61 +140,101 @@ class Embedder:
                     raise ApiKeyError("GEMINI_API_KEY is invalid") from e
                 raise
 
-    async def get_embeddings(
-        self, contents: Sequence[str], cached: bool = True, store: bool = False
+    def _get_cached(self, content: str) -> npt.NDArray[np.float32] | None:
+        """Get a single embedding from cache, or None if not found."""
+        row = self._db_conn.execute(
+            "SELECT vector FROM embeddings WHERE content = ?", (content,)
+        ).fetchone()
+        if row is None:
+            return None
+        blob: bytes = row[0]
+        return np.frombuffer(blob, dtype=np.float32).copy()
+
+    async def _fetch(
+        self, contents: list[str], *, store: bool
     ) -> dict[str, npt.NDArray[np.float32]]:
-        """Gets embeddings for a list of contents. Returns a dictionary mapping each
-        content element to its embedding.
+        """Fetch embeddings from API and optionally store them."""
+        if not contents:
+            return {}
+
+        batches = [
+            contents[i : i + BATCH_SIZE] for i in range(0, len(contents), BATCH_SIZE)
+        ]
+        total_batches = len(batches)
+        completed = 0
+
+        async def embed_with_progress(
+            batch: Sequence[str],
+        ) -> dict[str, npt.NDArray[np.float32]]:
+            nonlocal completed
+            embeddings = await self._embed_batch(batch)
+            batch_result = dict(zip(batch, embeddings))
+            if store:
+                self.store_embeddings(batch_result)
+            completed += 1
+            logger.info(f"Embedded {completed}/{total_batches} batches")
+            return batch_result
+
+        batch_results = await asyncio.gather(
+            *[embed_with_progress(batch) for batch in batches]
+        )
+
+        combined: dict[str, npt.NDArray[np.float32]] = {}
+        for batch_result in batch_results:
+            combined.update(batch_result)
+        return combined
+
+    async def get_embeddings(
+        self,
+        contents: Sequence[str],
+        cache_policy: CachePolicy = CachePolicy.DEFAULT,
+    ) -> dict[str, npt.NDArray[np.float32]]:
+        """Get embeddings for a list of contents.
 
         Args:
             contents: The contents to get embeddings for.
-            cached: Whether to read from cache or fetch from an API.
-            store: Whether to store any embeddings that were fetched from an API in
-                the cache.
+            cache_policy: Controls cache behavior.
         """
-        if cached:
-            if store:
-                logger.warning("store=True has no effect when cached=True")
-            result: dict[str, npt.NDArray[np.float32]] = {}
-            for content in contents:
-                row = self._db_conn.execute(
-                    "SELECT vector FROM embeddings WHERE content = ?", (content,)
-                ).fetchone()
-                if row is None:
-                    raise EmbeddingNotFoundError(
-                        f"Embedding not found for {content!r}. "
-                    )
-                blob: bytes = row[0]
-                result[content] = np.frombuffer(blob, dtype=np.float32).copy()
-            return result
-        else:
-            batches = [
-                contents[i : i + BATCH_SIZE]
-                for i in range(0, len(contents), BATCH_SIZE)
-            ]
-            total_batches = len(batches)
-            completed = 0
+        result: dict[str, npt.NDArray[np.float32]] = {}
 
-            async def embed_with_progress(
-                batch: Sequence[str],
-            ) -> dict[str, npt.NDArray[np.float32]]:
-                nonlocal completed
-                embeddings = await self._embed_batch(batch)
-                batch_result = dict(zip(batch, embeddings))
-                if store:
-                    self.store_embeddings(batch_result)
-                completed += 1
-                logger.info(f"Embedded {completed}/{total_batches} batches")
-                return batch_result
+        match cache_policy:
+            case CachePolicy.DEFAULT:
+                # Read cache → fetch fallback → store
+                to_fetch: list[str] = []
+                for content in contents:
+                    cached = self._get_cached(content)
+                    if cached is not None:
+                        result[content] = cached
+                    else:
+                        to_fetch.append(content)
+                fetched = await self._fetch(to_fetch, store=True)
+                result.update(fetched)
+            case CachePolicy.RELOAD:
+                # Skip read → fetch → store
+                fetched = await self._fetch(list(contents), store=True)
+                result.update(fetched)
+            case CachePolicy.NO_STORE:
+                # Skip read → fetch → skip store
+                fetched = await self._fetch(list(contents), store=False)
+                result.update(fetched)
+            case CachePolicy.ONLY_IF_CACHED:
+                # Read cache only → error if miss
+                for content in contents:
+                    cached = self._get_cached(content)
+                    if cached is None:
+                        raise EmbeddingNotFoundError(
+                            f"Embedding not found for {content!r}."
+                        )
+                    result[content] = cached
+            case _:
+                raise ValueError(f"Invalid cache policy: {cache_policy}")
 
-            batch_results = await asyncio.gather(
-                *[embed_with_progress(batch) for batch in batches]
-            )
+        return result
 
-            combined: dict[str, npt.NDArray[np.float32]] = {}
-            for batch_result in batch_results:
-                combined.update(batch_result)
-            return combined
+    def get_cached_contents(self) -> set[str]:
+        """Return the set of all cached content strings."""
+        cursor = self._db_conn.execute("SELECT content FROM embeddings")
+        return {row[0] for row in cursor.fetchall()}
 
     def store_embeddings(self, embeddings: dict[str, npt.NDArray[np.float32]]) -> None:
         """Store embeddings in the cache."""
