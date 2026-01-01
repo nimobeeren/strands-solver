@@ -1,12 +1,8 @@
-import pytest
-
 from strands_solver.cli import main
-
-pytestmark = pytest.mark.e2e
 
 
 def test_main(monkeypatch, caplog):
-    """End-to-end test solving a real puzzle using the CLI."""
+    """Solve a real puzzle through the CLI and assert that a solution is logged."""
     date = "2025-09-23"
     monkeypatch.setattr("sys.argv", ["strands-solver", date])
 
