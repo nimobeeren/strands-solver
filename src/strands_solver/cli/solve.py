@@ -1,29 +1,23 @@
-import argparse
 import asyncio
-import datetime
-import json
 import logging
 from pathlib import Path
 from pprint import pformat
+from typing import Annotated
 
-from dotenv import load_dotenv
+import typer
 
-from .common import Puzzle, Solution
-from .drawing import draw
-from .nyt import NYT
-from .solver import Solver
+from ..common import Puzzle, Solution
+from ..drawing import draw
+from ..nyt import NYT
+from ..solver import Solver
 
-load_dotenv()
-
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-)
 logger = logging.getLogger(__name__)
 
 
 def get_puzzle(puzzle_arg: str) -> Puzzle:
+    import datetime
+    import json
+
     if Path(puzzle_arg).exists():
         with Path(puzzle_arg).open("r") as f:
             data = json.load(f)
@@ -56,25 +50,7 @@ def write_solutions(solutions: set[Solution], output_dir: Path, puzzle_name: str
     logging.info(f"All {len(solutions)} solutions written to directory: '{output_dir}'")
 
 
-async def async_main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "puzzle",
-        type=str,
-        help="The puzzle to solve. Can be a path to a JSON file containing a puzzle, a date in YYYY-MM-DD format, or 'today'",
-    )
-    parser.add_argument(
-        "-o", "--output-dir", type=Path, help="Directory to write all solutions to"
-    )
-    args = parser.parse_args()
-
-    try:
-        puzzle = get_puzzle(args.puzzle)
-    except ValueError as e:
-        logging.error(str(e))
-        parser.print_help()
-        return 1
-
+async def async_solve(puzzle: Puzzle, output_dir: Path | None) -> None:
     logging.info("Solving puzzle:\n")
     print(f"Theme: {puzzle.theme}\n")
     draw(puzzle.grid)
@@ -99,16 +75,29 @@ async def async_main():
         print(f"🔵 {strand.string}")
     print()
 
-    output_dir: Path | None = args.output_dir
     if output_dir:
         write_solutions(
             solutions=set(solutions), output_dir=output_dir, puzzle_name=puzzle.name
         )
 
 
-def main():
-    return asyncio.run(async_main())
+def solve(
+    puzzle: Annotated[
+        str,
+        typer.Argument(
+            help="The puzzle to solve. Can be a path to a JSON file, a date in YYYY-MM-DD format, or 'today'"
+        ),
+    ],
+    output_dir: Annotated[
+        Path | None,
+        typer.Option("--output-dir", "-o", help="Directory to write all solutions to"),
+    ] = None,
+) -> None:
+    """Solve a Strands puzzle."""
+    try:
+        puz = get_puzzle(puzzle)
+    except ValueError as e:
+        logging.error(str(e))
+        raise typer.Exit(1)
 
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+    asyncio.run(async_solve(puz, output_dir))

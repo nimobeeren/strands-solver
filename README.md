@@ -10,12 +10,12 @@ A solver for Strands, the New York Times puzzle game.
 > [!NOTE]
 > Without a GEMINI_API_KEY the solver will try to find valid solutions but it can't accurately determine which solution is best.
 
-## Usage
+## Basic Usage
 
 ```bash
-uv run strands-solver today  # solve today's puzzle
-uv run strands-solver YYYY-MM-DD  # solve another day's puzzle
-uv run strands-solver path_to_puzzle.json  # solve puzzle from a file
+uv run strands-solver solve today  # solve today's puzzle
+uv run strands-solver solve YYYY-MM-DD  # solve another day's puzzle
+uv run strands-solver solve path_to_puzzle.json  # solve puzzle from a file
 ```
 
 ## Goal
@@ -84,21 +84,64 @@ where the strands are
 
 This is the "correct" solution as provided by the New York Times. There are other valid solutions, but not all match the theme.
 
-## Benchmarking
+## Results
 
-### Results
+The solver has been validated and benchmarked on a set of official puzzles. Currently, it solves a subset of puzzles correctly. The results are recorded in [RESULTS.md](./RESULTS.md).
 
-The solver has been run on a subset of puzzles. The results are recorded in [RESULTS.md](./RESULTS.md).
+## Advanced Usage
 
-### Running the Benchmark
+The CLI provides four commands: `solve`, `show`, `benchmark`, and `embed`.
 
-To run the solver against a set of puzzles and validate results:
+### `solve`
+
+Solve a Strands puzzle.
 
 ```bash
-uv run -m strands_solver.scripts.benchmark
+uv run strands-solver solve today                     # solve today's puzzle
+uv run strands-solver solve YYYY-MM-DD                # solve another day's puzzle
+uv run strands-solver solve path_to_puzzle.json       # solve puzzle from a file
+uv run strands-solver solve today -o ./solutions      # write all solutions to a directory
 ```
 
-See `--help` for options including date ranges, timeout, and output file.
+### `show`
+
+Display the official solution for a puzzle from the NY Times API (not used for solving).
+
+```bash
+uv run strands-solver show today
+uv run strands-solver show YYYY-MM-DD
+```
+
+### `benchmark`
+
+Benchmark the solver against a set of puzzles. Results are saved to a Markdown file.
+
+```bash
+uv run strands-solver benchmark                                  # default: 2025-09-01 to 2025-09-30
+uv run strands-solver benchmark -s 2025-10-01 -e 2025-10-31      # custom date range
+uv run strands-solver benchmark -t 30                            # 30 second timeout per puzzle
+uv run strands-solver benchmark -r ./my_results.md               # custom results file
+```
+
+### `embed`
+
+The solver uses semantic embeddings to determine which solution best fits the theme. These embeddings are
+generated while solving a puzzle and cached for future re-use. However, when solving many puzzles (such as when
+running a benchmark), you may run into rate limits for the embedding API. To avoid this, you can generate
+embeddings ahead of time.
+
+Embedding the entire dictionary costs about $0.10 and takes about 60 minutes on a paid (Tier 1) Gemini project
+(based on 2025-12-30 pricing and rate limits). While it's technically possible to do on the free tier, this would
+take a very long time due to rate limits. Storing the embeddings database also uses about 2 GB of disk space.
+
+To generate dictionary embeddings:
+
+```bash
+uv run strands-solver embed            # embed words not already cached
+uv run strands-solver embed --reload   # re-embed all words
+```
+
+The embeddings database is stored in `data/embeddings/embeddings.db`.
 
 ## Motivation
 
@@ -159,32 +202,3 @@ uv run pyright
 ```bash
 uv run ruff format
 ```
-
-### View Official Solutions
-
-To display the official solution for a puzzle from the NY Times API (not used for solving):
-
-```bash
-uv run -m strands_solver.scripts.show_solution today
-uv run -m strands_solver.scripts.show_solution YYYY-MM-DD
-```
-
-### Generating Dictionary Embeddings
-
-The solver uses semantic embeddings to determine which solution best fits the theme. These embeddings are generated while solving a puzzle and cached for future re-use. However, when solving many puzzles (such as when running a benchmark), you may run into rate limits for the embedding API. To avoid this, you can generate embeddings ahead of time.
-
-Embedding the entire dictionary costs about $0.10 and takes about 60 minutes on a paid (Tier 1) Gemini project (based on 2025-12-30 pricing and rate limits). While it's technically possible to do on the free tier, this would take a very long time due to rate limits. Storing the embeddings database also uses about 2 GB of disk space.
-
-To generate dictionary embeddings, run the `embed_dictionary` script:
-
-```bash
-uv run -m strands_solver.scripts.embed_dictionary
-```
-
-By default, we don't re-embed words that already appear in the database. To override this, use the `--reload` flag:
-
-```bash
-uv run -m strands_solver.scripts.embed_dictionary --reload
-```
-
-The embeddings database is stored in `data/embeddings.db`.

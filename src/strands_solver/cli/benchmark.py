@@ -1,32 +1,21 @@
-#!/usr/bin/env python3
-"""Benchmark the solver against a set of puzzles and validate results."""
-
-import argparse
 import asyncio
 import datetime
 import logging
 import multiprocessing
 import time
 from pathlib import Path
+from typing import Annotated
 
 import mdpd
 import pandas as pd
+import typer
 from dotenv import load_dotenv
 
-from strands_solver.common import Puzzle, Solution
-from strands_solver.nyt import NYT
-from strands_solver.solver import Solver
+from ..common import Puzzle, Solution
+from ..nyt import NYT
+from ..solver import Solver
 
-load_dotenv()
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-)
 logger = logging.getLogger(__name__)
-
-# The first puzzle published by NYT
-FIRST_PUZZLE_DATE = datetime.date(2024, 3, 4)
 
 
 def parse_date(date_str: str) -> datetime.date:
@@ -41,7 +30,6 @@ def _solve_in_process(puzzle: Puzzle, queue: multiprocessing.Queue) -> None:
     try:
         solver = Solver(puzzle)
         solutions = asyncio.run(solver.solve())
-        # Only return the best solution to avoid slow pickling of large lists
         best = solutions[0] if solutions else None
         queue.put(("success", best))
     except Exception as e:
@@ -52,7 +40,7 @@ def run_solver_with_timeout(
     puzzle: Puzzle,
     timeout: float | None,
 ) -> tuple[Solution | None, float]:
-    """Run the solver in a subprocess with optional timeout. Returns the best solution."""
+    """Runs the solver in a subprocess with optional timeout. Returns the best solution."""
     queue: multiprocessing.Queue = multiprocessing.Queue()
     process = multiprocessing.Process(
         target=_solve_in_process,
@@ -80,7 +68,7 @@ def run_solver_with_timeout(
 
 
 def load_existing_results(path: Path) -> pd.DataFrame:
-    """Load existing results from markdown file."""
+    """Loads existing results from Markdown file."""
     if not path.exists():
         return pd.DataFrame(columns=pd.Index(["Puzzle Date", "Result", "Time (s)"]))
 
@@ -94,11 +82,9 @@ def load_existing_results(path: Path) -> pd.DataFrame:
 
 
 def save_results(df: pd.DataFrame, path: Path) -> None:
-    """Save results as markdown table."""
-    # Sort by date
+    """Saves results to a Markdown file."""
     df = df.sort_values("Puzzle Date").reset_index(drop=True)
 
-    # Calculate pass rate
     total = len(df)
     passed = df["Result"].str.contains("PASS").sum()
     pass_rate = (passed / total) if total > 0 else 0
@@ -110,20 +96,18 @@ def save_results(df: pd.DataFrame, path: Path) -> None:
         f.write(f"\n\nPass rate: **{pass_rate:.3f}** ({passed}/{total})\n")
 
 
-async def benchmark(
+async def async_benchmark(
     start_date: datetime.date,
     end_date: datetime.date,
     timeout: float | None,
     results_path: Path,
 ) -> None:
-    """Run benchmark on puzzles in date range."""
+    """Runs the benchmark on a set of puzzles."""
     nyt = NYT()
 
-    # Load existing results
     existing_df = load_existing_results(results_path)
     results: list[dict[str, str]] = []
 
-    # Generate date range
     current = start_date
     dates = []
     while current <= end_date:
@@ -181,12 +165,9 @@ async def benchmark(
             }
         )
 
-    # Merge results
     new_df = pd.DataFrame(results)
 
-    # Combine with existing, updating rows for dates we just ran
     if not existing_df.empty:
-        # Remove dates we're updating
         new_dates = list(new_df["Puzzle Date"])
         filtered_df = existing_df[~existing_df["Puzzle Date"].isin(new_dates)]
         merged_df = pd.concat([filtered_df, new_df], ignore_index=True)
@@ -198,57 +179,52 @@ async def benchmark(
     logger.info(f"Results saved to {results_path}")
 
 
-async def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Benchmark the solver against a set of puzzles."
-    )
-    parser.add_argument(
-        "-s",
-        "--start-date",
-        type=str,
-        default="2025-09-01",
-        help="Start date (YYYY-MM-DD or 'today'). Default: 2025-09-01",
-    )
-    parser.add_argument(
-        "-e",
-        "--end-date",
-        type=str,
-        default="2025-09-30",
-        help="End date (YYYY-MM-DD or 'today'). Default: 2025-09-30",
-    )
-    parser.add_argument(
-        "-t",
-        "--timeout",
-        type=float,
-        default=90,
-        help="Timeout in seconds per puzzle. Set to 0 to disable. Default: 90s",
-    )
-    parser.add_argument(
-        "-r",
-        "--results",
-        type=Path,
-        default=Path("RESULTS.md"),
-        help="Path to a file where benchmark results are written in a Markdown table. Default: ./RESULTS.md",
-    )
-    args = parser.parse_args()
-
+def benchmark(
+    start_date: Annotated[
+        str,
+        typer.Option(
+            "--start-date",
+            "-s",
+            help="Start date (YYYY-MM-DD or 'today')",
+        ),
+    ] = "2025-09-01",
+    end_date: Annotated[
+        str,
+        typer.Option(
+            "--end-date",
+            "-e",
+            help="End date (YYYY-MM-DD or 'today')",
+        ),
+    ] = "2025-09-30",
+    timeout: Annotated[
+        float,
+        typer.Option(
+            "--timeout",
+            "-t",
+            help="Timeout in seconds per puzzle. Set to 0 to disable.",
+        ),
+    ] = 90,
+    results: Annotated[
+        Path,
+        typer.Option(
+            "--results",
+            "-r",
+            help="Path to a file where benchmark results are written in a Markdown table.",
+        ),
+    ] = Path("RESULTS.md"),
+) -> None:
+    """Benchmark the solver against a set of puzzles."""
     try:
-        start_date = parse_date(args.start_date)
-        end_date = parse_date(args.end_date)
+        parsed_start = parse_date(start_date)
+        parsed_end = parse_date(end_date)
     except ValueError as e:
         logger.error(f"Invalid date: {e}")
-        return 1
+        raise typer.Exit(1)
 
-    if start_date > end_date:
+    if parsed_start > parsed_end:
         logger.error("Start date must be before or equal to end date")
-        return 1
+        raise typer.Exit(1)
 
-    # Treat timeout <= 0 as no timeout
-    timeout = args.timeout if args.timeout > 0 else None
+    effective_timeout = timeout if timeout > 0 else None
 
-    await benchmark(start_date, end_date, timeout, args.results)
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(asyncio.run(main()))
+    asyncio.run(async_benchmark(parsed_start, parsed_end, effective_timeout, results))

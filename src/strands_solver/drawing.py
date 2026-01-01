@@ -224,11 +224,7 @@ def _build_render_grid(
 
 
 def _render_grid(data: list[list[RenderCell]]) -> None:
-    """Renders the render grid to the console.
-
-    Args:
-        render_grid: The render grid to display
-    """
+    """Renders the render grid to the console."""
     console = Console()
     for row in data:
         line = Text()
