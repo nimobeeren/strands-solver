@@ -14,6 +14,8 @@ def test_find_all_solutions():
     ]
     puzzle = Puzzle(name="test", theme="test", grid=grid, num_words=5)
 
+    finder = WordFinder(grid, dictionary={"EASY", "COOL", "TEST", "WORD", "SPAN"})
+    solver = Solver(puzzle, finder=finder)
     solver = Solver(puzzle)
     solutions = solver.find_all_solutions()
 
