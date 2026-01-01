@@ -174,14 +174,16 @@ def test_solution_equivalent_concatenated_spangram():
         non_spangram_strands=frozenset(),
     )
     solution2 = Solution(
-        spangram=(Strand(positions=((0, 0), (1, 0), (2, 0), (3, 0)), string="SPANGRAM"),),
+        spangram=(
+            Strand(positions=((0, 0), (1, 0), (2, 0), (3, 0)), string="SPANGRAM"),
+        ),
         non_spangram_strands=frozenset(),
     )
     assert solution1.equivalent(solution2)
 
 
-def test_solution_equivalent_different_positions():
-    """Solutions with same words but different positions should be equivalent."""
+def test_solution_not_equivalent_different_positions():
+    """Solutions with same words but different positions should not be equivalent."""
     solution1 = Solution(
         spangram=(Strand(positions=((0, 0), (1, 0), (2, 0)), string="SPAN"),),
         non_spangram_strands=frozenset(
@@ -193,6 +195,19 @@ def test_solution_equivalent_different_positions():
         non_spangram_strands=frozenset(
             {Strand(positions=((3, 4), (4, 4)), string="WORD")}
         ),
+    )
+    assert not solution1.equivalent(solution2)
+
+
+def test_solution_equivalent_different_letter_order():
+    """Solutions with same words but different positions should not be equivalent."""
+    solution1 = Solution(
+        spangram=(Strand(positions=((0, 0), (0, 1)), string="AA"),),
+        non_spangram_strands=frozenset(),
+    )
+    solution2 = Solution(
+        spangram=(Strand(positions=((0, 1), (0, 0)), string="AA"),),
+        non_spangram_strands=frozenset(),
     )
     assert solution1.equivalent(solution2)
 

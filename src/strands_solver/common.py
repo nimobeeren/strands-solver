@@ -33,23 +33,34 @@ class Solution:
         if a solution matches the offical one.
 
         Two solutions are deemed equivalent if they consist of the same spangram and
-        non-spangram strands. The strands may be in different positions, the spangram
-        may be concatenated into a single strand or not, and casing of words may differ.
-
-        We check for equality of words but not their positions, since some puzzles have
-        multiple solutions with different positions.
+        non-spangram strands. The position sets of strands must match, but the letters
+        of a strand may appear in a different order. The spangram may be concatenated
+        into a single strand or not, and casing of strings may differ.
         """
 
-        # Concatenate the spangram strands into a single strand since the official
-        # solutions always do this
-        spangram = "".join(strand.string for strand in self.spangram).upper()
-        other_spangram = "".join(strand.string for strand in other.spangram).upper()
+        # Concatenate the spangram strands since the official solutions always do this
+        spangram = Strand(
+            positions=sum((s.positions for s in self.spangram), start=()),
+            string="".join(s.string for s in self.spangram),
+        )
+        other_spangram = Strand(
+            positions=sum((s.positions for s in other.spangram), start=()),
+            string="".join(s.string for s in other.spangram),
+        )
 
-        # Ignore positions and casing
-        words = {strand.string.upper() for strand in self.non_spangram_strands}
-        other_words = {strand.string.upper() for strand in other.non_spangram_strands}
+        all_strands = {spangram, *self.non_spangram_strands}
+        other_all_strands = {other_spangram, *other.non_spangram_strands}
 
-        return spangram == other_spangram and words == other_words
+        def to_comparable(strand: Strand) -> tuple[frozenset[tuple[int, int]], str]:
+            # Use sets for positions since order doesn't matter
+            positions = frozenset(strand.positions)
+            # Ignore casing
+            string = strand.string.upper()
+            return (positions, string)
+
+        return {to_comparable(s) for s in all_strands} == {
+            to_comparable(s) for s in other_all_strands
+        }
 
 
 class Direction(Enum):
