@@ -7,8 +7,8 @@ import httpx
 from .common import Puzzle, Solution, Strand
 
 
-class PuzzleFetcher:
-    """Fetches puzzles from the NY Times API."""
+class NYT:
+    """Fetches data from the NY Times API."""
 
     @lru_cache
     def _fetch_data(self, date: datetime.date) -> dict[str, Any]:

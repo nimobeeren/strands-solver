@@ -2,7 +2,7 @@ import datetime
 import pytest
 
 from strands_solver.cli import main
-from strands_solver.puzzle_fetcher import PuzzleFetcher
+from strands_solver.nyt import NYT
 from strands_solver.solver import Solver
 
 # Mark all tests in this file as end-to-end tests
@@ -26,9 +26,9 @@ async def test_solve():
     offical NY Times solution."""
     date = datetime.date(2025, 9, 23)
 
-    fetcher = PuzzleFetcher()
-    puzzle = fetcher.fetch_puzzle(date)
-    expected_solution = fetcher.fetch_solution(date)
+    nyt = NYT()
+    puzzle = nyt.fetch_puzzle(date)
+    expected_solution = nyt.fetch_solution(date)
     solver = Solver(puzzle)
 
     found_solutions = await solver.solve()

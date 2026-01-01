@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 from .common import Puzzle, Solution
 from .drawing import draw
-from .puzzle_fetcher import PuzzleFetcher
+from .nyt import NYT
 from .solver import Solver
 
 load_dotenv()
@@ -34,13 +34,13 @@ def get_puzzle(puzzle_arg: str) -> Puzzle:
                 num_words=data["num_words"],
             )
     elif puzzle_arg == "today":
-        return PuzzleFetcher().fetch_puzzle(datetime.date.today())
+        return NYT().fetch_puzzle(datetime.date.today())
     else:
         try:
             date = datetime.date.fromisoformat(puzzle_arg)
         except ValueError:
             raise ValueError(f"Invalid puzzle argument: {puzzle_arg}")
-        return PuzzleFetcher().fetch_puzzle(date)
+        return NYT().fetch_puzzle(date)
 
 
 def write_solutions(solutions: set[Solution], output_dir: Path, puzzle_name: str):

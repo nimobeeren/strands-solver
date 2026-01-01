@@ -14,7 +14,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from strands_solver.common import Puzzle, Solution
-from strands_solver.puzzle_fetcher import PuzzleFetcher
+from strands_solver.nyt import NYT
 from strands_solver.solver import Solver
 
 load_dotenv()
@@ -117,7 +117,7 @@ async def benchmark(
     results_path: Path,
 ) -> None:
     """Run benchmark on puzzles in date range."""
-    fetcher = PuzzleFetcher()
+    nyt = NYT()
 
     # Load existing results
     existing_df = load_existing_results(results_path)
@@ -140,7 +140,7 @@ async def benchmark(
         elapsed_str = ""
 
         try:
-            puzzle = fetcher.fetch_puzzle(date)
+            puzzle = nyt.fetch_puzzle(date)
             logger.info(f"Solving {date_str}")
             solution, elapsed = run_solver_with_timeout(puzzle, timeout)
             logger.info(f"Completed {date_str}")
@@ -152,7 +152,7 @@ async def benchmark(
                     f"Result of {date_str}: {result_status} (no solutions found)"
                 )
             else:
-                official = fetcher.fetch_solution(date)
+                official = nyt.fetch_solution(date)
                 if solution.equivalent(official):
                     result_status = "✅ PASS"
                     logger.info(

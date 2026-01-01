@@ -5,7 +5,7 @@ import argparse
 import datetime
 
 from strands_solver.drawing import draw
-from strands_solver.puzzle_fetcher import PuzzleFetcher
+from strands_solver.nyt import NYT
 
 
 def get_date(date_arg: str) -> datetime.date:
@@ -34,9 +34,9 @@ def main() -> int:
         print(f"Error: {e}")
         return 1
 
-    fetcher = PuzzleFetcher()
-    puzzle = fetcher.fetch_puzzle(date)
-    solution = fetcher.fetch_solution(date)
+    nyt = NYT()
+    puzzle = nyt.fetch_puzzle(date)
+    solution = nyt.fetch_solution(date)
 
     print(f"Theme: {puzzle.theme}\n")
     draw(puzzle.grid, solution)
