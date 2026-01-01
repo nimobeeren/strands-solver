@@ -185,11 +185,17 @@ I was really happy with this workflow. My coding agent could look at my code, su
 ### Tests
 
 ```bash
-uv run pytest  # unit tests
+uv run pytest         # unit + integration tests
 uv run pytest -m e2e  # end-to-end tests
 ```
 
-Unit tests are fast and reliable because they have no external dependencies. End-to-end tests are more realistic, but can be flaky because they rely on external systems.
+We use three types of tests:
+
+- **Unit tests** (`tests/unit/`) are fast and reliable because they have no external dependencies.
+- **Integration tests** (`tests/integration/`) call external APIs but test individual components.
+- **End-to-end tests** (`tests/e2e/`) run the full application through the CLI.
+
+By default, end-to-end tests are skipped because they are slower and may potentially be flaky.
 
 ### Type Checking
 
