@@ -16,7 +16,6 @@ def test_find_all_solutions():
 
     finder = WordFinder(grid, dictionary={"EASY", "COOL", "TEST", "WORD", "SPAN"})
     solver = Solver(puzzle, finder=finder)
-    solver = Solver(puzzle)
     solutions = solver.find_all_solutions()
 
     # Should find at least one solution
