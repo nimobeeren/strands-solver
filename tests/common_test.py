@@ -1,6 +1,6 @@
 import pytest
 
-from strands_solver.common import Strand
+from strands_solver.common import Solution, Strand
 
 
 def test_overlaps():
@@ -148,3 +148,80 @@ def test_no_crossing_when_strands_share_endpoint():
     strand1 = Strand(positions=((0, 0), (1, 0), (2, 0)), string="ABC")
     strand2 = Strand(positions=((2, 0), (2, 1), (2, 2)), string="DEF")
     assert not strand1.crosses(strand2)
+
+
+def test_solution_equivalent_identical():
+    """Two identical solutions should be equivalent."""
+    spangram = (Strand(positions=((0, 0), (1, 0), (2, 0)), string="SPAN"),)
+    non_spangram = frozenset(
+        {
+            Strand(positions=((0, 1), (1, 1)), string="AB"),
+            Strand(positions=((0, 2), (1, 2)), string="CD"),
+        }
+    )
+    solution1 = Solution(spangram=spangram, non_spangram_strands=non_spangram)
+    solution2 = Solution(spangram=spangram, non_spangram_strands=non_spangram)
+    assert solution1.equivalent(solution2)
+
+
+def test_solution_equivalent_concatenated_spangram():
+    """A split spangram should be equivalent to a single concatenated spangram strand."""
+    solution1 = Solution(
+        spangram=(
+            Strand(positions=((0, 0), (1, 0)), string="SPAN"),
+            Strand(positions=((2, 0), (3, 0)), string="GRAM"),
+        ),
+        non_spangram_strands=frozenset(),
+    )
+    solution2 = Solution(
+        spangram=(Strand(positions=((0, 0), (1, 0), (2, 0), (3, 0)), string="SPANGRAM"),),
+        non_spangram_strands=frozenset(),
+    )
+    assert solution1.equivalent(solution2)
+
+
+def test_solution_equivalent_different_positions():
+    """Solutions with same words but different positions should be equivalent."""
+    solution1 = Solution(
+        spangram=(Strand(positions=((0, 0), (1, 0), (2, 0)), string="SPAN"),),
+        non_spangram_strands=frozenset(
+            {Strand(positions=((0, 1), (1, 1)), string="WORD")}
+        ),
+    )
+    solution2 = Solution(
+        spangram=(Strand(positions=((3, 3), (4, 3), (5, 3)), string="SPAN"),),
+        non_spangram_strands=frozenset(
+            {Strand(positions=((3, 4), (4, 4)), string="WORD")}
+        ),
+    )
+    assert solution1.equivalent(solution2)
+
+
+def test_solution_not_equivalent_different_spangram():
+    """Solutions with different spangrams should not be equivalent."""
+    solution1 = Solution(
+        spangram=(Strand(positions=((0, 0), (1, 0)), string="SPAN"),),
+        non_spangram_strands=frozenset(),
+    )
+    solution2 = Solution(
+        spangram=(Strand(positions=((0, 0), (1, 0)), string="GRAM"),),
+        non_spangram_strands=frozenset(),
+    )
+    assert not solution1.equivalent(solution2)
+
+
+def test_solution_not_equivalent_different_words():
+    """Solutions with different non-spangram words should not be equivalent."""
+    solution1 = Solution(
+        spangram=(Strand(positions=((0, 0), (1, 0)), string="SPAN"),),
+        non_spangram_strands=frozenset(
+            {Strand(positions=((0, 1), (1, 1)), string="APPLE")}
+        ),
+    )
+    solution2 = Solution(
+        spangram=(Strand(positions=((0, 0), (1, 0)), string="SPAN"),),
+        non_spangram_strands=frozenset(
+            {Strand(positions=((0, 1), (1, 1)), string="BANANA")}
+        ),
+    )
+    assert not solution1.equivalent(solution2)

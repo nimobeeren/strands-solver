@@ -35,33 +35,6 @@ def parse_date(date_str: str) -> datetime.date:
     return datetime.date.fromisoformat(date_str)
 
 
-def validate_solution(
-    our_solution: Solution | None,
-    official_solution: Solution,
-) -> bool:
-    """Check if our solution matches the official solution."""
-    if our_solution is None:
-        return False
-
-    # Concatenate our spangram strands into a single word since the official solution
-    # always does this
-    our_spangram = "".join(strand.string for strand in our_solution.spangram)
-    official_spangram = official_solution.spangram[0].string
-
-    # NOTE: we check for equality of words but not their positions, since some puzzles
-    # have multiple solutions with different positions
-
-    if our_spangram.upper() != official_spangram.upper():
-        return False
-
-    our_words = {strand.string.upper() for strand in our_solution.non_spangram_strands}
-    official_words = {
-        strand.string.upper() for strand in official_solution.non_spangram_strands
-    }
-
-    return our_words == official_words
-
-
 def _solve_in_process(puzzle: Puzzle, queue: multiprocessing.Queue) -> None:
     """Worker function that runs solver in a subprocess."""
     load_dotenv()
@@ -180,7 +153,7 @@ async def benchmark(
                 )
             else:
                 official = fetcher.fetch_solution(date)
-                if validate_solution(solution, official):
+                if solution.equivalent(official):
                     result_status = "✅ PASS"
                     logger.info(
                         f"Result of {date_str}: {result_status} ({elapsed_str}s)"

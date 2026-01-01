@@ -28,6 +28,29 @@ class Solution:
     spangram: tuple["Strand", ...]
     non_spangram_strands: frozenset["Strand"]
 
+    def equivalent(self, other: "Solution"):
+        """Determines if the solution is equivalent to another one, useful for checking
+        if a solution matches the offical one.
+
+        Two solutions are deemed equivalent if they consist of the same spangram and
+        non-spangram strands. The strands may be in different positions, the spangram
+        may be concatenated into a single strand or not, and casing of words may differ.
+
+        We check for equality of words but not their positions, since some puzzles have
+        multiple solutions with different positions.
+        """
+
+        # Concatenate the spangram strands into a single strand since the official
+        # solutions always do this
+        spangram = "".join(strand.string for strand in self.spangram).upper()
+        other_spangram = "".join(strand.string for strand in other.spangram).upper()
+
+        # Ignore positions and casing
+        words = {strand.string.upper() for strand in self.non_spangram_strands}
+        other_words = {strand.string.upper() for strand in other.non_spangram_strands}
+
+        return spangram == other_spangram and words == other_words
+
 
 class Direction(Enum):
     RIGHT = (1, 0)

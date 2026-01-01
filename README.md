@@ -5,7 +5,7 @@ A solver for Strands, the New York Times puzzle game.
 ## Prerequisites
 
 - Install the [uv](https://docs.astral.sh/uv/) package manager.
-- (Optional) Set the `GEMINI_API_KEY` environment variable to a valid [Gemini API key](https://ai.google.dev/gemini-api/docs/api-key). A free tier key is sufficient for all but the most extreme use cases. Using a paid tier key incurs a tiny cost per puzzle: typically $0.00001–$0.0001.
+- (Optional) Set the `GEMINI_API_KEY` environment variable to a valid [Gemini API key](https://ai.google.dev/gemini-api/docs/api-key). A free tier key is sufficient for solving puzzles, though it may take longer due to rate limits. Using a paid tier key is faster but incurs a tiny cost: typically $0.00001–$0.0001 per puzzle.
 
 > [!NOTE]
 > Without a GEMINI_API_KEY the solver will try to find valid solutions but it can't accurately determine which solution is best.
