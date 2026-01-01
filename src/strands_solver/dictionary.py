@@ -1,27 +1,13 @@
-import logging
 from pathlib import Path
-
-import httpx
 
 
 def load_dictionary():
     """Loads the ENABLE1 dictionary from the internet."""
 
     # Define the data directory and file path
-    data_dir = Path(__file__).parent.parent.parent / "data"
-    dict_file = data_dir / "enable1_words.txt"
-
-    # Create data directory if it doesn't exist
-    data_dir.mkdir(exist_ok=True)
-
-    # Download the dictionary file if it doesn't exist
-    if not dict_file.exists():
-        url = "https://raw.githubusercontent.com/rressler/data_raw_courses/main/enable1_words.txt"
-        logging.info("Downloading dictionary")
-        response = httpx.get(url)
-        response.raise_for_status()
-        dict_file.write_text(response.text)
-        logging.info(f"Dictionary saved to {dict_file}")
+    dict_file = (
+        Path(__file__).parent.parent.parent / "data" / "dictionary" / "enable1.txt"
+    )
 
     # Read and process the words
     with open(dict_file, "r") as f:

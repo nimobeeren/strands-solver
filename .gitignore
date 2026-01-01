@@ -12,4 +12,4 @@ wheels/
 .venv
 .env
 out/
-data/
+data/embeddings
