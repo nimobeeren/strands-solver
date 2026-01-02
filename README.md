@@ -8,7 +8,7 @@ A solver for Strands, the New York Times puzzle game.
 - (Optional) Set the `GEMINI_API_KEY` environment variable to a valid [Gemini API key](https://ai.google.dev/gemini-api/docs/api-key). A free tier key is sufficient for solving puzzles, though it may take longer due to rate limits. Using a paid tier key is faster but incurs a tiny cost: typically $0.00001–$0.0001 per puzzle.
 
 > [!NOTE]
-> Without a GEMINI_API_KEY the solver will try to find valid solutions but it can't accurately determine which solution is best.
+> Without a `GEMINI_API_KEY` the solver will try to find valid solutions but it can't accurately determine which solution is best.
 
 ## Basic Usage
 
@@ -26,7 +26,7 @@ More precisely, given
 
 - a rectangular grid of letters
 - a phrase describing a theme
-- a number specifying the number of words in the solution
+- a number specifying the number of words (or, more accurately: strands) in the solution
 
 the solver attempts to find a set of _strands_ (sequences of adjacent letters in the grid) such that
 
@@ -36,9 +36,6 @@ the solver attempts to find a set of _strands_ (sequences of adjacent letters in
 - every strand spells out a valid word (though the spangram may be a concatenation of multiple words)
 - all strands are somehow related to the theme
 - the number of strands matches the given number of words
-
-> [!NOTE]
-> There may be multiple strands in a solution which span the entire grid, but only one is deemed the spangram.
 
 ### Example
 
@@ -87,6 +84,14 @@ This is the "correct" solution as provided by the New York Times. There are othe
 ## Results
 
 The solver has been validated and benchmarked on a set of official puzzles. Currently, it solves a subset of puzzles correctly. The results are recorded in [RESULTS.md](./RESULTS.md).
+
+## Limitations
+
+- Some puzzles can't be solved in a reasonable amount of time (see [RESULTS.md](./RESULTS.md)).
+- The solver will only find a solution if the spangram is a single word or a concatenation of words which are each 4 letters or longer. In reality, the words in a concatenated spangram may be shorter than 4 letters.
+- The solver usually finds multiple solutions but it doesn't always choose the solution that best fits the theme.
+- The solver will not find solutions where the spangram contains a contraction (like YOURE), which does appear in real solutions.
+- The dictionary (`dictionary.py`) uses the [ENABLE1](https://rressler.quarto.pub/i_data_sets/data_word_lists.html) word list, which is comprehensive but may occasionally miss some valid words or include uncommon ones. This may cause the solver to fail to find a valid solution.
 
 ## Advanced Usage
 
@@ -171,14 +176,6 @@ I was really happy with this workflow. My coding agent could look at my code, su
 
 > [!TIP]
 > I've added an [export of my chat](./assets/cursor_algo_analysis.md) where I asked for analysis and algo suggestions.
-
-## Limitations
-
-- Some puzzles can't be solved in a reasonable amount of time (see [RESULTS.md](./RESULTS.md)).
-- The solver will only find a solution if the spangram is a single word or a concatenation of words which are each 4 letters or longer. In reality, the words in a concatenated spangram may be shorter than 4 letters.
-- The solver usually finds multiple solutions but it doesn't always choose the solution that best fits the theme.
-- The solver will not find solutions where the spangram contains a contraction (like YOURE), which does appear in real solutions.
-- The dictionary (`dictionary.py`) uses the [ENABLE1](https://rressler.quarto.pub/i_data_sets/data_word_lists.html) word list, which is comprehensive but may occasionally miss some valid words or include uncommon ones. This may cause the solver to fail to find a valid solution.
 
 ## Development
 
