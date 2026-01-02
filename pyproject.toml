@@ -48,7 +48,7 @@ where = ["src"]
 log_cli = true
 log_cli_level = "INFO"
 markers = [
-    "integration: integration tests that call external APIs",
+    "integration: integration tests that test multiple components",
     "e2e: end-to-end tests that run the full application",
 ]
 addopts = "-m 'not e2e'"  # skip e2e tests by default

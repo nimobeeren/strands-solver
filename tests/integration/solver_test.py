@@ -1,9 +1,65 @@
+import json
+from pathlib import Path
+
+import pytest
+
 from strands_solver.common import Puzzle, Solution, Strand
 from strands_solver.solver import Solver
 from strands_solver.spangram_finder import SpangramFinder
 from strands_solver.word_finder import WordFinder
 
+PUZZLES_DIR = Path(__file__).parent.parent.parent / "puzzles"
 
+
+def load_puzzle(date: str) -> Puzzle:
+    with open(PUZZLES_DIR / f"{date}.json") as f:
+        data = json.load(f)
+    return Puzzle(
+        name=date,
+        theme=data["theme"],
+        grid=data["grid"],
+        num_words=data["num_words"],
+    )
+
+
+def load_solution(date: str, grid: list[list[str]]) -> Solution:
+    with open(PUZZLES_DIR / f"{date}_solution.json") as f:
+        data = json.load(f)
+
+    def coords_to_strand(word: str, coords: list[list[int]]) -> Strand:
+        # API returns [row, col], convert to (col, row) = (x, y)
+        positions = tuple((col, row) for row, col in coords)
+        return Strand(positions=positions, string=word)
+
+    # Build spangram strand
+    spangram_coords = data["spangram_coords"]
+    spangram_word = "".join(grid[row][col] for row, col in spangram_coords)
+    spangram = coords_to_strand(spangram_word, spangram_coords)
+
+    # Build theme word strands
+    theme_strands: set[Strand] = set()
+    for word, coords in data["theme_coords"].items():
+        theme_strands.add(coords_to_strand(word, coords))
+
+    return Solution(spangram=(spangram,), non_spangram_strands=frozenset(theme_strands))
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_solve():
+    """Solve a real puzzle and assert that the best found solution is equivalent to the
+    offical NY Times solution."""
+    puzzle = load_puzzle("2025-09-23")
+    expected_solution = load_solution("2025-09-23", puzzle.grid)
+    solver = Solver(puzzle)
+
+    found_solutions = await solver.solve()
+    best_found_solution = found_solutions[0]
+
+    assert best_found_solution.equivalent(expected_solution)
+
+
+@pytest.mark.integration
 def test_find_all_solutions():
     # Simple grid where each word appears only once
     grid = [
@@ -36,6 +92,7 @@ def test_find_all_solutions():
     assert expected in solutions
 
 
+@pytest.mark.integration
 def test_find_all_solutions_single_spangram():
     grid = [
         ["A", "B", "C", "D", "E", "K", "L", "M", "N"],
@@ -87,6 +144,7 @@ def test_find_all_solutions_single_spangram():
     assert solutions == expected
 
 
+@pytest.mark.integration
 def test_find_all_solutions_concatenated_spangram():
     grid = [
         ["A", "B", "C", "D", "E", "F", "G", "H"],
@@ -160,6 +218,7 @@ def test_find_all_solutions_concatenated_spangram():
     assert solutions == expected
 
 
+@pytest.mark.integration
 def test_find_all_solutions_cant_concatenate_if_not_spangram():
     """Test that we don't concatenate words if they don't form a spangram."""
     grid = [
@@ -179,6 +238,7 @@ def test_find_all_solutions_cant_concatenate_if_not_spangram():
     assert len(solutions) == 0
 
 
+@pytest.mark.integration
 def test_find_all_solutions_three_word_spangram():
     """Test that we can concatenate 3 words to form a spangram."""
     grid = [["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"]]
@@ -229,6 +289,7 @@ def test_find_all_solutions_three_word_spangram():
     assert solutions == expected
 
 
+@pytest.mark.integration
 def test_find_all_solutions_four_word_spangram():
     """Test that we can concatenate 4 words to form a spangram."""
     grid = [
@@ -290,6 +351,7 @@ def test_find_all_solutions_four_word_spangram():
     assert solutions == expected
 
 
+@pytest.mark.integration
 def test_find_all_solutions_spangram_with_duplicate_word():
     """Edge case where the spangram is a concatenation of words where one word appears
     in multiple places in the grid (duplicate). Normally, this duplicate would get
@@ -321,6 +383,7 @@ def test_find_all_solutions_spangram_with_duplicate_word():
     assert expected in solutions
 
 
+@pytest.mark.integration
 def test_find_all_solutions_no_solutions_crossing():
     """Test that we don't find solutions where a strand crosses another strand."""
     # fmt: off
@@ -338,6 +401,7 @@ def test_find_all_solutions_no_solutions_crossing():
     assert len(solutions) == 0
 
 
+@pytest.mark.integration
 def test_find_all_solutions_no_solutions_self_crossing():
     """Test that we don't find solutions where a strand crosses itself."""
     # fmt: off
@@ -355,6 +419,7 @@ def test_find_all_solutions_no_solutions_self_crossing():
     assert len(solutions) == 0
 
 
+@pytest.mark.integration
 def test_find_all_solutions_no_solutions_self_crossing_spangram():
     grid = [
         ["H", "G", "F", "S"],
@@ -381,6 +446,7 @@ def test_find_all_solutions_no_solutions_self_crossing_spangram():
     assert len(solutions) == 0
 
 
+@pytest.mark.integration
 def test_find_all_solutions_no_solutions_spangram_max_words():
     """Test that we don't find solutions where the spangram consists of more than
     spangram_max_words words."""

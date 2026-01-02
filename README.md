@@ -13,8 +13,8 @@ A solver for Strands, the New York Times puzzle game.
 ## Basic Usage
 
 ```bash
-uv run strands-solver solve today  # solve today's puzzle
-uv run strands-solver solve YYYY-MM-DD  # solve another day's puzzle
+uv run strands-solver solve today                # solve today's puzzle
+uv run strands-solver solve YYYY-MM-DD           # solve another day's puzzle
 uv run strands-solver solve path_to_puzzle.json  # solve puzzle from a file
 ```
 
@@ -97,10 +97,10 @@ The CLI provides four commands: `solve`, `show`, `benchmark`, and `embed`.
 Solve a Strands puzzle.
 
 ```bash
-uv run strands-solver solve today                     # solve today's puzzle
-uv run strands-solver solve YYYY-MM-DD                # solve another day's puzzle
-uv run strands-solver solve path_to_puzzle.json       # solve puzzle from a file
-uv run strands-solver solve today -o ./solutions      # write all solutions to a directory
+uv run strands-solver solve today                 # solve today's puzzle
+uv run strands-solver solve YYYY-MM-DD            # solve another day's puzzle
+uv run strands-solver solve path_to_puzzle.json   # solve puzzle from a file
+uv run strands-solver solve today -o ./solutions  # write all solutions to a directory
 ```
 
 ### `show`
@@ -117,10 +117,10 @@ uv run strands-solver show YYYY-MM-DD
 Benchmark the solver against a set of puzzles. Results are saved to a Markdown file.
 
 ```bash
-uv run strands-solver benchmark                                  # default: 2025-09-01 to 2025-09-30
-uv run strands-solver benchmark -s 2025-10-01 -e 2025-10-31      # custom date range
-uv run strands-solver benchmark -t 30                            # 30 second timeout per puzzle
-uv run strands-solver benchmark -r ./my_results.md               # custom results file
+uv run strands-solver benchmark                              # default: 2025-09-01 to 2025-12-31
+uv run strands-solver benchmark -s 2025-10-01 -e 2025-10-31  # custom date range
+uv run strands-solver benchmark -t 30                        # 30 second timeout per puzzle
+uv run strands-solver benchmark -r ./my_results.md           # custom results file
 ```
 
 ### `embed`
@@ -137,8 +137,8 @@ take a very long time due to rate limits. Storing the embeddings database also u
 To generate dictionary embeddings:
 
 ```bash
-uv run strands-solver embed            # embed words not already cached
-uv run strands-solver embed --reload   # re-embed all words
+uv run strands-solver embed           # embed words not already cached
+uv run strands-solver embed --reload  # re-embed all words
 ```
 
 The embeddings database is stored in `data/embeddings/embeddings.db`.
@@ -174,7 +174,7 @@ I was really happy with this workflow. My coding agent could look at my code, su
 
 ## Limitations
 
-- Some puzzles take a very long time to solve (see [notes.md](./puzzles/notes.md)).
+- Some puzzles can't be solved in a reasonable amount of time (see [RESULTS.md](./RESULTS.md)).
 - The solver will only find a solution if the spangram is a single word or a concatenation of words which are each 4 letters or longer. In reality, the words in a concatenated spangram may be shorter than 4 letters.
 - The solver usually finds multiple solutions but it doesn't always choose the solution that best fits the theme.
 - The solver will not find solutions where the spangram contains a contraction (like YOURE), which does appear in real solutions.
@@ -191,11 +191,11 @@ uv run pytest -m e2e  # end-to-end tests
 
 We use three types of tests:
 
-- **Unit tests** (`tests/unit/`) are fast and reliable because they have no external dependencies.
-- **Integration tests** (`tests/integration/`) call external APIs but test individual components.
-- **End-to-end tests** (`tests/e2e/`) run the full application through the CLI.
+- **Unit tests** (`tests/unit/`) are fast and reliable because they test individual components.
+- **Integration tests** (`tests/integration/`) test multiple components together but have no external dependencies.
+- **End-to-end tests** (`tests/e2e/`) run the full application through the CLI, relying on external APIs.
 
-By default, end-to-end tests are skipped because they are slower and may potentially be flaky.
+By default, end-to-end tests are skipped because they are slower and could fail if an external API changes/fails.
 
 ### Type Checking
 
