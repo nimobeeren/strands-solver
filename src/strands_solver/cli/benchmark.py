@@ -195,7 +195,7 @@ def benchmark(
             "-e",
             help="End date (YYYY-MM-DD or 'today')",
         ),
-    ] = "2025-09-30",
+    ] = "2025-12-31",
     timeout: Annotated[
         float,
         typer.Option(
