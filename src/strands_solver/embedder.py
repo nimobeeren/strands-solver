@@ -18,7 +18,9 @@ logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 100  # Gemini Embedding API limit
 MAX_CONCURRENT_REQUESTS = 10
-DEFAULT_DB_PATH = Path(__file__).parent.parent.parent / "data" / "embeddings" / "embeddings.db"
+DEFAULT_DB_PATH = (
+    Path(__file__).parent.parent.parent / "data" / "embeddings" / "embeddings.db"
+)
 
 
 class CachePolicy(Enum):
