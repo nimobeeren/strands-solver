@@ -447,6 +447,40 @@ def test_find_all_solutions_no_solutions_self_crossing_spangram():
 
 
 @pytest.mark.integration
+def test_find_all_solutions_no_solutions_connecting_segment_crosses_strand():
+    """Test that we don't find solutions where the connecting segment between two
+    words of a concatenated spangram crosses another strand.
+
+    The connecting segment is the implicit segment created when concatenating
+    two strands - it goes from the last position of the first word to the first
+    position of the second word.
+    """
+    grid = [
+        ["A", "B", "C"],
+        ["D", "E", "F"],
+        ["G", "H", "I"],
+    ]
+    puzzle = Puzzle(name="test", theme="test", grid=grid, num_words=2)
+
+    # Words:
+    # - CB: C(2,0) -> B(1,0) - ends at B(1,0)
+    # - DGHI: D(0,1) -> G(0,2) -> H(1,2) -> I(2,2) - starts at D(0,1)
+    # - AEF: A(0,0) -> E(1,1) -> F(2,1) - contains diagonal A->E
+    finder = WordFinder(grid, dictionary={"CB", "DGHI", "AEF"}, min_length=2)
+    solver = Solver(puzzle, finder=finder)
+    solutions = solver.find_all_solutions()
+
+    # Spangram CB+DGHI would create a crossing (B->D crosses AEF's A->E segment), so it
+    # must be filtered out. Spangram CB+AEF is valid and should be found.
+    assert len(solutions) >= 1
+    for solution in solutions:
+        spangram_words = {s.string for s in solution.spangram}
+        assert spangram_words != {"CB", "DGHI"}, (
+            "spangram CB+DGHI should be filtered out"
+        )
+
+
+@pytest.mark.integration
 def test_find_all_solutions_no_solutions_spangram_max_words():
     """Test that we don't find solutions where the spangram consists of more than
     spangram_max_words words."""
