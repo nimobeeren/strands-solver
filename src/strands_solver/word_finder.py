@@ -36,12 +36,25 @@ class WordFinder:
         logger.info(f"Loaded {len(dictionary)} words")
 
     def find_all_words(self) -> set[Strand]:
-        """Finds all strands forming words in the grid."""
+        """Finds all strands forming words in the grid.
+
+        Strands covering the same cells with the same string but different traversal
+        order are deduplicated.
+        """
         words: set[Strand] = set()
         for x in range(self.num_cols):
             for y in range(self.num_rows):
                 words |= self._find_words_rec(current_pos=(x, y))
-        return words
+
+        # Deduplicate strands that cover the same cells with the same string
+        # (different traversal order through the same cells)
+        unique: dict[tuple[frozenset[tuple[int, int]], str], Strand] = {}
+        for strand in words:
+            key = (frozenset(strand.positions), strand.string)
+            if key not in unique or strand.positions < unique[key].positions:
+                unique[key] = strand
+
+        return set(unique.values())
 
     def _find_words_rec(
         self,

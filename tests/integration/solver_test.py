@@ -492,3 +492,61 @@ def test_find_all_solutions_no_solutions_spangram_max_words():
     solver = Solver(puzzle, finder=finder, spangram_finder=spangram_finder)
     solutions = solver.find_all_solutions()
     assert len(solutions) == 0
+
+
+@pytest.mark.integration
+def test_find_all_solutions_no_equivalent_solutions_traversal_order():
+    """Test that equivalent solutions (same cells, different traversal order) are
+    deduplicated."""
+    # Grid where "SPPT" can be spelled via two different paths through the same cells:
+    # Path 1: S(0,0) → P(1,0) → P(0,1) → T(1,1)
+    # Path 2: S(0,0) → P(0,1) → P(1,0) → T(1,1)
+    grid = [
+        ["S", "P"],
+        ["P", "T"],
+    ]
+    puzzle = Puzzle(name="test", theme="test", grid=grid, num_words=1)
+
+    finder = WordFinder(grid, dictionary={"SPPT"})
+    solver = Solver(puzzle, finder=finder)
+    solutions = solver.find_all_solutions()
+
+    # Should find exactly 1 solution, not 2 equivalent ones
+    assert len(solutions) == 1
+
+    # Verify the solution covers all cells
+    solution = list(solutions)[0]
+    all_positions = set()
+    for strand in solution.spangram:
+        all_positions.update(strand.positions)
+    assert all_positions == {(0, 0), (1, 0), (0, 1), (1, 1)}
+
+
+@pytest.mark.integration
+def test_find_all_solutions_no_equivalent_solutions_spangram_split():
+    """Test that equivalent solutions (same spangram cells, different word splits) are
+    deduplicated.
+
+    E.g. spangram TRETS+LOBS vs TRET+SLOBS both cover the same cells and spell the same
+    concatenated string, so they should be deduplicated.
+    """
+    # Grid: A B C D E F G H (single row, 8 columns)
+    # Two valid covers: {ABCD, EFGH} and {AB, CDEFGH}
+    # Both can form spangram ABCDEFGH via concatenation
+    # But they're equivalent (same cells, same concatenated string)
+    grid = [["A", "B", "C", "D", "E", "F", "G", "H"]]
+    puzzle = Puzzle(name="test", theme="test", grid=grid, num_words=1)
+
+    finder = WordFinder(grid, dictionary={"ABCD", "EFGH", "AB", "CDEFGH"}, min_length=2)
+    solver = Solver(puzzle, finder=finder)
+    solutions = solver.find_all_solutions()
+
+    # Should find exactly 1 solution (ABCD+EFGH and AB+CDEFGH are equivalent)
+    assert len(solutions) == 1
+
+    # Verify the spangram covers all cells
+    solution = list(solutions)[0]
+    spangram_positions = set()
+    for strand in solution.spangram:
+        spangram_positions.update(strand.positions)
+    assert spangram_positions == {(i, 0) for i in range(8)}

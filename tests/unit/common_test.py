@@ -240,3 +240,18 @@ def test_solution_not_equivalent_different_words():
         ),
     )
     assert not solution1.equivalent(solution2)
+
+
+def test_solution_comparison():
+    """Solutions should be comparable using < for deterministic ordering."""
+    solution1 = Solution(
+        spangram=(Strand(positions=((0, 0), (1, 0)), string="AB"),),
+        non_spangram_strands=frozenset(),
+    )
+    solution2 = Solution(
+        spangram=(Strand(positions=((1, 0), (2, 0)), string="BC"),),
+        non_spangram_strands=frozenset(),
+    )
+    # solution1 < solution2 because (0, 0) < (1, 0)
+    assert solution1 < solution2
+    assert not solution2 < solution1

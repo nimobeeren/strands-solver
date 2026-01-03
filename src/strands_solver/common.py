@@ -19,7 +19,7 @@ class Cover(frozenset["Strand"]):
     pass
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, order=False)
 class Solution:
     """A set of strands, which form a solution to a puzzle.
 
@@ -28,39 +28,43 @@ class Solution:
     spangram: tuple["Strand", ...]
     non_spangram_strands: frozenset["Strand"]
 
-    def equivalent(self, other: "Solution"):
-        """Determines if the solution is equivalent to another one, useful for checking
-        if a solution matches the offical one.
+    @property
+    def key(
+        self,
+    ) -> tuple[
+        frozenset[tuple[int, int]],
+        str,
+        frozenset[tuple[frozenset[tuple[int, int]], str]],
+    ]:
+        """Canonical key for this solution.
 
-        Two solutions are deemed equivalent if they consist of the same spangram and
-        non-spangram strands. The position sets of strands must match, but the letters
-        of a strand may appear in a different order. The spangram may be concatenated
-        into a single strand or not, and casing of strings may differ.
+        Two solutions with the same key are considered equivalent. The key ignores:
+        - How the spangram is split into words (or not)
+        - The traversal order of positions within strands (as long as their strings are
+          the same)
+        - Casing of strings
         """
-
-        # Concatenate the spangram strands since the official solutions always do this
-        spangram = Strand(
-            positions=sum((s.positions for s in self.spangram), start=()),
-            string="".join(s.string for s in self.spangram),
+        spangram_positions = frozenset(
+            pos for strand in self.spangram for pos in strand.positions
         )
-        other_spangram = Strand(
-            positions=sum((s.positions for s in other.spangram), start=()),
-            string="".join(s.string for s in other.spangram),
+        spangram_string = "".join(s.string for s in self.spangram).upper()
+
+        non_spangram_strands = frozenset(
+            (frozenset(s.positions), s.string.upper())
+            for s in self.non_spangram_strands
         )
 
-        all_strands = {spangram, *self.non_spangram_strands}
-        other_all_strands = {other_spangram, *other.non_spangram_strands}
+        return (spangram_positions, spangram_string, non_spangram_strands)
 
-        def to_comparable(strand: Strand) -> tuple[frozenset[tuple[int, int]], str]:
-            # Use sets for positions since order doesn't matter
-            positions = frozenset(strand.positions)
-            # Ignore casing
-            string = strand.string.upper()
-            return (positions, string)
+    def equivalent(self, other: "Solution") -> bool:
+        """Determines if the solution is equivalent to another one."""
+        return self.key == other.key
 
-        return {to_comparable(s) for s in all_strands} == {
-            to_comparable(s) for s in other_all_strands
-        }
+    def __lt__(self, other: "Solution") -> bool:
+        """Compare solutions for sorting. Uses spangram positions for deterministic ordering."""
+        return tuple(strand.positions for strand in self.spangram) < tuple(
+            strand.positions for strand in other.spangram
+        )
 
 
 class Direction(Enum):

@@ -46,6 +46,8 @@ class SpangramFinder:
         Finds all solutions, each consisting of only the strands in one of the given
         covers. Only the spangram may consist of a concatenation of several strands in
         one of the covers.
+
+        Equivalent solutions are deduplicated.
         """
         # Identify duplicate words across all covers
         all_strands = set()
@@ -187,7 +189,15 @@ class SpangramFinder:
                                     )
                                     solutions.add(solution)
 
-        return solutions
+        # Deduplicate equivalent solutions
+        # Compare solutions using __lt__ to ensure consistent choice of which
+        # equivalent solution to keep
+        unique: dict[tuple, Solution] = {}
+        for solution in solutions:
+            if solution.key not in unique or solution < unique[solution.key]:
+                unique[solution.key] = solution
+
+        return set(unique.values())
 
     def _find_orderings(
         self, words: tuple[Strand, ...], adjacency: dict[Strand, list[Strand]]
