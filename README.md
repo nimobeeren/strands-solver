@@ -18,6 +18,8 @@ uv run strands-solver solve YYYY-MM-DD           # solve another day's puzzle
 uv run strands-solver solve path_to_puzzle.json  # solve puzzle from a file
 ```
 
+See also [Advanced Usage](#advanced-usage).
+
 ## Goal
 
 This program attempts to solve Strands puzzles in one shot, i.e. without a way to iteratively determine whether the chosen words are correct or not.
@@ -186,7 +188,7 @@ uv run pytest         # unit + integration tests
 uv run pytest -m e2e  # end-to-end tests
 ```
 
-We use three types of tests:
+We have three types of tests:
 
 - **Unit tests** (`tests/unit/`) are fast and reliable because they test individual components.
 - **Integration tests** (`tests/integration/`) test multiple components together but have no external dependencies.
