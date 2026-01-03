@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 
 from .common import Puzzle, Solution
 from .embedder import ApiKeyError, EmbeddingNotFoundError, Embedder
@@ -8,6 +9,15 @@ from .spangram_finder import SpangramFinder
 from .word_finder import WordFinder
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class SolverStats:
+    """Statistics captured during solving."""
+
+    num_words: int | None = None
+    num_covers: int | None = None
+    num_solutions: int | None = None
 
 
 class Solver:
@@ -27,6 +37,7 @@ class Solver:
             puzzle.grid, num_words=puzzle.num_words
         )
         self._ranker = ranker or SolutionRanker(Embedder())
+        self.stats = SolverStats()
 
     def find_all_solutions(self) -> set[Solution]:
         """Returns a set of solutions, where each solution is a set of strands covering
@@ -34,14 +45,17 @@ class Solver:
         """
         logger.info("Finding words in grid")
         words = self._finder.find_all_words()
+        self.stats.num_words = len(words)
         logger.info(f"Found {len(words)} words")
 
         logger.info("Covering grid with words")
         covers = self._coverer.cover(words)
+        self.stats.num_covers = len(covers)
         logger.info(f"Found {len(covers)} covers")
 
         logger.info("Finding spangrams")
         solutions = self._spangram_finder.find_spangrams(covers)
+        self.stats.num_solutions = len(solutions)
         logger.info(f"Found {len(solutions)} solutions with spangrams")
 
         return solutions

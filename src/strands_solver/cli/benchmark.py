@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 
 from ..common import Puzzle, Solution
 from ..nyt import NYT
-from ..solver import Solver
+from ..solver import Solver, SolverStats
 
 logger = logging.getLogger(__name__)
 
@@ -31,16 +31,16 @@ def _solve_in_process(puzzle: Puzzle, queue: multiprocessing.Queue) -> None:
         solver = Solver(puzzle)
         solutions = asyncio.run(solver.solve())
         best = solutions[0] if solutions else None
-        queue.put(("success", best))
+        queue.put(("success", best, solver.stats))
     except Exception as e:
-        queue.put(("error", str(e)))
+        queue.put(("error", str(e), None))
 
 
 def run_solver_with_timeout(
     puzzle: Puzzle,
     timeout: float | None,
-) -> tuple[Solution | None, float]:
-    """Runs the solver in a subprocess with optional timeout. Returns the best solution."""
+) -> tuple[Solution | None, SolverStats | None, float]:
+    """Runs the solver in a subprocess with optional timeout. Returns the best solution and stats."""
     queue: multiprocessing.Queue = multiprocessing.Queue()
     process = multiprocessing.Process(
         target=_solve_in_process,
@@ -60,29 +60,39 @@ def run_solver_with_timeout(
     if queue.empty():
         raise RuntimeError("Solver process ended without returning a result")
 
-    status, result = queue.get()
+    status, result, stats = queue.get()
     if status == "error":
         raise RuntimeError(result)
 
-    return result, elapsed
+    return result, stats, elapsed
+
+
+RESULT_COLUMNS = ["Puzzle Date", "Result", "Time (s)", "Words", "Covers", "Solutions"]
+RESULT_COLUMNS_ALIGNMENT = ("left", "left", "right", "right", "right", "right")
 
 
 def load_existing_results(path: Path) -> pd.DataFrame:
     """Loads existing results from Markdown file."""
     if not path.exists():
-        return pd.DataFrame(columns=pd.Index(["Puzzle Date", "Result", "Time (s)"]))
+        return pd.DataFrame(columns=pd.Index(RESULT_COLUMNS))
 
     try:
         with open(path) as f:
             content = f.read()
         df = mdpd.from_md(content)
+        # Add missing columns for backwards compatibility
+        for col in RESULT_COLUMNS:
+            if col not in df.columns:
+                df[col] = ""
         return df
     except Exception:
-        return pd.DataFrame(columns=pd.Index(["Puzzle Date", "Result", "Time (s)"]))
+        return pd.DataFrame(columns=pd.Index(RESULT_COLUMNS))
 
 
 def save_results(df: pd.DataFrame, path: Path) -> None:
     """Saves results to a Markdown file."""
+    # Ensure columns are in the correct order
+    df = pd.DataFrame(df[RESULT_COLUMNS])
     df = df.sort_values("Puzzle Date").reset_index(drop=True)
 
     total = len(df)
@@ -90,7 +100,7 @@ def save_results(df: pd.DataFrame, path: Path) -> None:
     pass_rate = (passed / total) if total > 0 else 0
 
     with open(path, "w") as f:
-        markdown = df.to_markdown(index=False, colalign=("left", "left", "right"))
+        markdown = df.to_markdown(index=False, colalign=RESULT_COLUMNS_ALIGNMENT)
         assert markdown is not None
         f.write(markdown)
         f.write(f"\n\nPass rate: **{pass_rate:.3f}** ({passed}/{total})\n")
@@ -122,13 +132,24 @@ async def async_benchmark(
 
         result_status = ""
         elapsed_str = ""
+        words_str = ""
+        covers_str = ""
+        solutions_str = ""
 
         try:
             puzzle = nyt.fetch_puzzle(date)
             logger.info(f"Solving {date_str}")
-            solution, elapsed = run_solver_with_timeout(puzzle, timeout)
+            solution, stats, elapsed = run_solver_with_timeout(puzzle, timeout)
             logger.info(f"Completed {date_str}")
             elapsed_str = f"{elapsed:.1f}"
+
+            if stats is not None:
+                if stats.num_words is not None:
+                    words_str = str(stats.num_words)
+                if stats.num_covers is not None:
+                    covers_str = str(stats.num_covers)
+                if stats.num_solutions is not None:
+                    solutions_str = str(stats.num_solutions)
 
             if solution is None:
                 result_status = "❌ FAIL"
@@ -162,6 +183,9 @@ async def async_benchmark(
                 "Puzzle Date": date_str,
                 "Result": result_status,
                 "Time (s)": elapsed_str,
+                "Words": words_str,
+                "Covers": covers_str,
+                "Solutions": solutions_str,
             }
         )
 
