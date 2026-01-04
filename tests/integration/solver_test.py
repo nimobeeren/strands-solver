@@ -550,3 +550,96 @@ def test_find_all_solutions_no_equivalent_solutions_spangram_split():
     for strand in solution.spangram:
         spangram_positions.update(strand.positions)
     assert spangram_positions == {(i, 0) for i in range(8)}
+
+
+@pytest.mark.integration
+def test_find_all_solutions_spangram_with_short_word():
+    """Test that short words (< 4 letters) can be part of a spangram concatenation.
+
+    Short words should be automatically found for spangram consideration, even when
+    the default min_length=4 is used for regular words. They should only be allowed
+    as part of a concatenated spangram, not as standalone words.
+    """
+    # Grid: A B C | D E F
+    #       G H I | J K L
+    # The spangram could be ABC + DEF (spans top row from left to right)
+    # Non-spangram words: GHIJKL (bottom row)
+    grid = [
+        ["A", "B", "C", "D", "E", "F"],
+        ["G", "H", "I", "J", "K", "L"],
+    ]
+    puzzle = Puzzle(name="test", theme="test", grid=grid, num_words=2)
+
+    # ABC is a short word (3 letters) that should only be part of the spangram
+    # DEF is also short (3 letters)
+    # GHIJKL is a regular word (6 letters)
+    # The solver should automatically find short words for spangram consideration
+    finder = WordFinder(
+        grid, dictionary={"ABC", "DEF", "GHIJKL"}
+    )  # default min_length=4
+    solver = Solver(puzzle, finder=finder)
+    solutions = solver.find_all_solutions()
+
+    # Should find exactly 1 solution with the short words concatenated as spangram
+    assert len(solutions) >= 1
+
+    expected = Solution(
+        spangram=(
+            Strand(positions=((0, 0), (1, 0), (2, 0)), string="ABC"),
+            Strand(positions=((3, 0), (4, 0), (5, 0)), string="DEF"),
+        ),
+        non_spangram_strands=frozenset(
+            (
+                Strand(
+                    positions=((0, 1), (1, 1), (2, 1), (3, 1), (4, 1), (5, 1)),
+                    string="GHIJKL",
+                ),
+            )
+        ),
+    )
+    assert expected in solutions
+
+
+@pytest.mark.integration
+def test_find_all_solutions_short_word_not_standalone():
+    """Test that short words cannot appear as standalone non-spangram words.
+
+    A short word (< 4 letters) can only be used if it's part of a concatenated
+    spangram. If a cover would require a short word as a standalone non-spangram
+    word, that cover should be rejected (no valid solution can be formed from it).
+    """
+    # Grid: A B C D E F
+    #       G H I J K L
+    # Dictionary has:
+    # - ABC (short, 3 letters)
+    # - DEF (short, 3 letters)
+    # - GHIJKL (regular, 6 letters)
+    # - ABCDEF (can be used as full spangram)
+    #
+    # There are two possible covers:
+    # 1. {ABCDEF, GHIJKL} - valid solution with ABCDEF as spangram
+    # 2. {ABC, DEF, GHIJKL} - would require ABC or DEF as standalone non-spangram
+    #
+    # Only cover 1 should produce a valid solution, or cover 2 with ABC+DEF
+    # concatenated as spangram.
+    grid = [
+        ["A", "B", "C", "D", "E", "F"],
+        ["G", "H", "I", "J", "K", "L"],
+    ]
+    puzzle = Puzzle(name="test", theme="test", grid=grid, num_words=2)
+
+    finder = WordFinder(
+        grid, dictionary={"ABC", "DEF", "GHIJKL", "ABCDEF"}, min_length=1
+    )
+    solver = Solver(puzzle, finder=finder)
+    solutions = solver.find_all_solutions()
+
+    # Should find solutions
+    assert len(solutions) >= 1
+
+    # All solutions should have no short words as non-spangram strands
+    for solution in solutions:
+        for strand in solution.non_spangram_strands:
+            assert len(strand.string) >= 4, (
+                f"Short word '{strand.string}' should not appear as non-spangram"
+            )
