@@ -15,6 +15,7 @@ dependencies = [
     "mdpd>=0.2.1",
     "numpy>=2.3.3",
     "pandas>=2.3.3",
+    "platformdirs>=4.4.0",
     "python-dotenv>=1.1.1",
     "rich>=14.2.0",
     "sqlite-vec>=0.1.6",
@@ -43,6 +44,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/strands_solver"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"data/dictionary/enable1.txt" = "strands_solver/data/enable1.txt"
 
 [tool.pytest.ini_options]
 log_cli = true

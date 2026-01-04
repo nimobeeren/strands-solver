@@ -8,6 +8,7 @@ from typing import Sequence, cast
 
 import numpy as np
 import numpy.typing as npt
+import platformdirs
 import sqlite_vec
 from google import genai
 from google.genai.types import ContentListUnion, EmbedContentConfig
@@ -18,9 +19,12 @@ logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 100  # Gemini Embedding API limit
 MAX_CONCURRENT_REQUESTS = 10
-DEFAULT_DB_PATH = (
-    Path(__file__).parent.parent.parent / "data" / "embeddings" / "embeddings.db"
-)
+
+
+def get_default_db_path() -> Path:
+    """Returns the default embeddings database path in the user data directory."""
+    data_dir = Path(platformdirs.user_data_dir("strands-solver"))
+    return data_dir / "embeddings.db"
 
 
 class CachePolicy(Enum):
@@ -51,7 +55,10 @@ class ApiKeyError(Exception):
 class Embedder:
     """Text embedding with SQLite-backed caching."""
 
-    def __init__(self, db_path: Path = DEFAULT_DB_PATH) -> None:
+    def __init__(self, db_path: Path | None = None) -> None:
+        if db_path is None:
+            db_path = get_default_db_path()
+        db_path.parent.mkdir(parents=True, exist_ok=True)
         self._db_conn = sqlite3.connect(db_path)
         self._db_conn.enable_load_extension(True)
         sqlite_vec.load(self._db_conn)
