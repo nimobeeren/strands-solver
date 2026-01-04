@@ -617,18 +617,6 @@ wheels = [
 ]
 
 [[package]]
-name = "mdpd"
-version = "0.2.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pandas" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/2f/ec/b31ac809b79e1baa0550e60325273ef437fdde77a65aaa68bdc2b3e82ef9/mdpd-0.2.1.tar.gz", hash = "sha256:041bcd0faabddc8982f70432b71ebe033442f6d495ae4026678ace1b8c4f9897", size = 2834, upload-time = "2023-10-15T08:04:38.646Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d7/9c/f8c498687901bf5c39e05015ea17e689d7f5e68b19a0d5e0c22edb309997/mdpd-0.2.1-py3-none-any.whl", hash = "sha256:7735776f1fa96ac318e89e536aa0e8a9a896163e042d57b1e1c43298d6f6fc26", size = 3449, upload-time = "2023-10-15T08:04:37.099Z" },
-]
-
-[[package]]
 name = "mdurl"
 version = "0.1.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1275,7 +1263,6 @@ source = { editable = "." }
 dependencies = [
     { name = "google-genai" },
     { name = "httpx" },
-    { name = "mdpd" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "python-dotenv" },
@@ -1301,7 +1288,6 @@ dev = [
 requires-dist = [
     { name = "google-genai", specifier = ">=1.41.0" },
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "mdpd", specifier = ">=0.2.1" },
     { name = "numpy", specifier = ">=2.3.3" },
     { name = "pandas", specifier = ">=2.3.3" },
     { name = "python-dotenv", specifier = ">=1.1.1" },

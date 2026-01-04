@@ -32,11 +32,12 @@ def test_show():
 @pytest.mark.e2e
 def test_benchmark(tmp_path):
     """Run benchmark on a single puzzle and verify results are written."""
-    results_file = tmp_path / "results.md"
+    report_dir = tmp_path / "reports"
     result = run_cli(
-        f"benchmark --start-date 2025-09-23 --end-date 2025-09-23 --timeout 90 --results {results_file}"
+        f"benchmark --start-date 2025-09-23 --end-date 2025-09-23 --timeout 90 --report-dir {report_dir}"
     )
     assert result.returncode == 0
-    assert results_file.exists()
-    content = results_file.read_text()
-    assert "2025-09-23" in content
+    assert (report_dir / "summary.csv").exists()
+    assert (report_dir / "results.csv").exists()
+    results_content = (report_dir / "results.csv").read_text()
+    assert "2025-09-23" in results_content

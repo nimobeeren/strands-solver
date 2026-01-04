@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
 
-import mdpd
 import pandas as pd
 import typer
 from dotenv import load_dotenv
@@ -70,7 +69,6 @@ def run_solver_with_timeout(
 
 
 RESULT_COLUMNS = ["Puzzle Date", "Result", "Time (s)", "Words", "Covers", "Solutions"]
-RESULT_COLUMNS_ALIGNMENT = ("left", "left", "right", "right", "right", "right")
 
 
 @dataclass
@@ -85,24 +83,14 @@ class BenchmarkSummary:
         return self.num_passed / self.num_puzzles if self.num_puzzles > 0 else 0
 
 
-def load_existing_results(path: Path) -> pd.DataFrame:
-    """Loads existing results from Markdown file."""
-    if not path.exists():
+def load_existing_results(report_dir: Path) -> pd.DataFrame:
+    """Loads existing results from CSV file."""
+    results_path = report_dir / "results.csv"
+    if not results_path.exists():
         return pd.DataFrame(columns=pd.Index(RESULT_COLUMNS))
 
     try:
-        with open(path) as f:
-            content = f.read()
-        # Find the results table (starts with "| Puzzle Date")
-        lines = content.split("\n")
-        results_start = None
-        for i, line in enumerate(lines):
-            if line.startswith("| Puzzle Date"):
-                results_start = i
-                break
-        if results_start is not None:
-            content = "\n".join(lines[results_start:])
-        df = mdpd.from_md(content)
+        df = pd.read_csv(results_path)
         # Add missing columns for backwards compatibility
         for col in RESULT_COLUMNS:
             if col not in df.columns:
@@ -112,44 +100,42 @@ def load_existing_results(path: Path) -> pd.DataFrame:
         return pd.DataFrame(columns=pd.Index(RESULT_COLUMNS))
 
 
-def save_results(df: pd.DataFrame, path: Path, summary: BenchmarkSummary) -> None:
-    """Saves results to a Markdown file."""
+def save_results(df: pd.DataFrame, report_dir: Path, summary: BenchmarkSummary) -> None:
+    """Saves results to CSV files in the report directory."""
+    report_dir.mkdir(parents=True, exist_ok=True)
+
     # Ensure columns are in the correct order
     df = pd.DataFrame(df[RESULT_COLUMNS])
     df = df.sort_values("Puzzle Date").reset_index(drop=True)
 
-    # Build summary table
+    # Save results CSV
+    results_path = report_dir / "results.csv"
+    df.to_csv(results_path, index=False)
+
+    # Save summary CSV
     summary_data = {
-        "Puzzles": [str(summary.num_puzzles)],
-        "Passed": [str(summary.num_passed)],
-        "Pass Rate": [f"{summary.pass_rate:.1%}"],
-        "Total Time": [f"{summary.total_time_seconds:.1f}s"],
-        "API Key": ["Yes" if summary.api_key_used else "No"],
+        "Puzzles": [summary.num_puzzles],
+        "Passed": [summary.num_passed],
+        "Pass Rate": [round(summary.pass_rate, 3)],
+        "Total Time (s)": [round(summary.total_time_seconds, 1)],
+        "API Key": [summary.api_key_used],
     }
     summary_df = pd.DataFrame(summary_data)
-
-    with open(path, "w") as f:
-        summary_markdown = summary_df.to_markdown(index=False)
-        assert summary_markdown is not None
-        f.write(summary_markdown)
-        f.write("\n\n")
-        markdown = df.to_markdown(index=False, colalign=RESULT_COLUMNS_ALIGNMENT)
-        assert markdown is not None
-        f.write(markdown)
-        f.write("\n")
+    summary_path = report_dir / "summary.csv"
+    summary_df.to_csv(summary_path, index=False)
 
 
 async def async_benchmark(
     start_date: datetime.date,
     end_date: datetime.date,
     timeout: float | None,
-    results_path: Path,
+    report_dir: Path,
 ) -> None:
     """Runs the benchmark on a set of puzzles."""
     nyt = NYT()
     api_key_used = bool(os.getenv("GEMINI_API_KEY"))
 
-    existing_df = load_existing_results(results_path)
+    existing_df = load_existing_results(report_dir)
     results: list[dict[str, str]] = []
     total_time = 0.0
 
@@ -188,31 +174,31 @@ async def async_benchmark(
                     solutions_str = str(stats.num_solutions)
 
             if solution is None:
-                result_status = "❌ FAIL"
+                result_status = "FAIL"
                 logger.info(
                     f"Result of {date_str}: {result_status} (no solutions found)"
                 )
             else:
                 official = nyt.fetch_solution(date)
                 if solution.equivalent(official):
-                    result_status = "✅ PASS"
+                    result_status = "PASS"
                     logger.info(
                         f"Result of {date_str}: {result_status} ({elapsed_str}s)"
                     )
                 else:
-                    result_status = "❌ FAIL"
+                    result_status = "FAIL"
                     logger.info(
                         f"Result of {date_str}: {result_status} (solution mismatch)"
                     )
 
         except TimeoutError:
-            result_status = "⏱️ TIMEOUT"
+            result_status = "TIMEOUT"
             elapsed = timeout if timeout else 0.0
             elapsed_str = f">{timeout:.0f}" if timeout else ""
             logger.info(f"Result of {date_str}: {result_status} ({elapsed_str}s)")
 
         except Exception as e:
-            result_status = "⚠️ ERROR"
+            result_status = "ERROR"
             logger.error(f"Result of {date_str}: {result_status} ({e})")
 
         total_time += elapsed
@@ -260,8 +246,8 @@ async def async_benchmark(
         api_key_used=api_key_used,
     )
 
-    save_results(merged_df, results_path, summary)
-    logger.info(f"Results saved to {results_path}")
+    save_results(merged_df, report_dir, summary)
+    logger.info(f"Results saved to {report_dir}")
 
 
 def benchmark(
@@ -289,14 +275,14 @@ def benchmark(
             help="Timeout in seconds per puzzle. Set to 0 to disable.",
         ),
     ] = 90,
-    results: Annotated[
+    report_dir: Annotated[
         Path,
         typer.Option(
-            "--results",
+            "--report-dir",
             "-r",
-            help="Path to a file where benchmark results are written in a Markdown table.",
+            help="Directory where benchmark results are written (summary.csv and results.csv).",
         ),
-    ] = Path("RESULTS.md"),
+    ] = Path("reports"),
 ) -> None:
     """Benchmark the solver against a set of puzzles."""
     try:
@@ -312,4 +298,6 @@ def benchmark(
 
     effective_timeout = timeout if timeout > 0 else None
 
-    asyncio.run(async_benchmark(parsed_start, parsed_end, effective_timeout, results))
+    asyncio.run(
+        async_benchmark(parsed_start, parsed_end, effective_timeout, report_dir)
+    )

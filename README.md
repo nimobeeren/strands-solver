@@ -85,11 +85,11 @@ This is the "correct" solution as provided by the New York Times. There are othe
 
 ## Results
 
-The solver has been validated and benchmarked on a set of official puzzles. Currently, it solves a subset of puzzles correctly. The results are recorded in [RESULTS.md](./RESULTS.md).
+The solver has been validated and benchmarked on a set of official puzzles. Currently, it solves a subset of puzzles correctly. The results are recorded in the `reports/` directory as CSV files (`summary.csv` and `results.csv`).
 
 ## Limitations
 
-- Some puzzles can't be solved in a reasonable amount of time (see [RESULTS.md](./RESULTS.md)).
+- Some puzzles can't be solved in a reasonable amount of time (see `reports/results.csv`).
 - The solver will only find a solution if the spangram is a single word or a concatenation of words which are each 4 letters or longer. In reality, the words in a concatenated spangram may be shorter than 4 letters.
 - The solver usually finds multiple solutions but it doesn't always choose the solution that best fits the theme.
 - The solver will not find solutions where the spangram contains a contraction (like YOURE), which does appear in real solutions.
@@ -121,13 +121,13 @@ uv run strands-solver show YYYY-MM-DD
 
 ### `benchmark`
 
-Benchmark the solver against a set of puzzles. Results are saved to a Markdown file.
+Benchmark the solver against a set of puzzles. Results are saved as CSV files (`summary.csv` and `results.csv`) in a report directory.
 
 ```bash
 uv run strands-solver benchmark                              # default: 2025-09-01 to 2025-12-31
 uv run strands-solver benchmark -s 2025-10-01 -e 2025-10-31  # custom date range
 uv run strands-solver benchmark -t 30                        # 30 second timeout per puzzle
-uv run strands-solver benchmark -r ./my_results.md           # custom results file
+uv run strands-solver benchmark -r ./my_reports              # custom report directory
 ```
 
 ### `embed`
