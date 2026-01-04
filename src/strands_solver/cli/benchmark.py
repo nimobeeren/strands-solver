@@ -285,7 +285,7 @@ def benchmark(
             "-r",
             help="Directory where benchmark results are written (summary.csv and results.csv).",
         ),
-    ] = Path("reports"),
+    ] = Path("report"),
 ) -> None:
     """Benchmark the solver against a set of puzzles."""
     try:
