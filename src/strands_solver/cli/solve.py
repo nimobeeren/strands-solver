@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from enum import Enum
 from pathlib import Path
 from pprint import pformat
 from typing import Annotated
@@ -10,6 +11,11 @@ from ..common import Puzzle, Solution
 from ..drawing import draw
 from ..nyt import NYT
 from ..solver import Solver
+
+
+class CovererType(str, Enum):
+    original = "original"
+    cpsat = "cpsat"
 
 logger = logging.getLogger(__name__)
 
@@ -50,14 +56,29 @@ def write_solutions(solutions: set[Solution], output_dir: Path, puzzle_name: str
     logging.info(f"All {len(solutions)} solutions written to directory: '{output_dir}'")
 
 
-async def async_solve(puzzle: Puzzle, output_dir: Path | None) -> None:
+async def async_solve(
+    puzzle: Puzzle,
+    output_dir: Path | None,
+    coverer_type: CovererType = CovererType.original,
+    timeout: float = 60.0,
+    max_solutions: int = 100000,
+) -> None:
     logging.info("Solving puzzle:\n")
     print(f"Theme: {puzzle.theme}\n")
     draw(puzzle.grid)
     print(f"\nNumber of words: {puzzle.num_words}")
     print()
 
-    solver = Solver(puzzle)
+    if coverer_type == CovererType.cpsat:
+        from ..cpsat_coverer import CPSATGridCoverer
+
+        coverer = CPSATGridCoverer(
+            puzzle.grid, timeout_seconds=timeout, max_solutions=max_solutions
+        )
+        solver = Solver(puzzle, coverer=coverer)
+    else:
+        solver = Solver(puzzle)
+
     solutions = await solver.solve()
 
     if not solutions:
@@ -92,6 +113,30 @@ def solve(
         Path | None,
         typer.Option("--output-dir", "-o", help="Directory to write all solutions to"),
     ] = None,
+    coverer: Annotated[
+        CovererType,
+        typer.Option(
+            "--coverer",
+            "-c",
+            help="Grid covering algorithm: 'original' (backtracking with MRV) or 'cpsat' (OR-Tools CP-SAT solver)",
+        ),
+    ] = CovererType.original,
+    timeout: Annotated[
+        float,
+        typer.Option(
+            "--timeout",
+            "-t",
+            help="Timeout in seconds for covering (only used with cpsat coverer)",
+        ),
+    ] = 60.0,
+    max_solutions: Annotated[
+        int,
+        typer.Option(
+            "--max-solutions",
+            "-m",
+            help="Maximum number of covers to find (only used with cpsat coverer)",
+        ),
+    ] = 100000,
 ) -> None:
     """Solve a Strands puzzle."""
     try:
@@ -100,4 +145,4 @@ def solve(
         logging.error(str(e))
         raise typer.Exit(1)
 
-    asyncio.run(async_solve(puz, output_dir))
+    asyncio.run(async_solve(puz, output_dir, coverer, timeout, max_solutions))

@@ -1,5 +1,9 @@
 from dataclasses import dataclass
 from enum import Enum
+from typing import TYPE_CHECKING, Iterable, Protocol
+
+if TYPE_CHECKING:
+    pass
 
 
 @dataclass
@@ -17,6 +21,14 @@ class Cover(frozenset["Strand"]):
     Note: there is no check that a cover is valid."""
 
     pass
+
+
+class GridCovererProtocol(Protocol):
+    """Protocol for grid covering algorithms."""
+
+    def cover(self, strands: Iterable["Strand"]) -> set[Cover]:
+        """Finds ways to cover the grid by choosing a subset of the strands without overlapping."""
+        ...
 
 
 @dataclass(frozen=True, order=False)

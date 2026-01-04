@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 
-from .common import Puzzle, Solution
+from .common import GridCovererProtocol, Puzzle, Solution
 from .embedder import ApiKeyError, EmbeddingNotFoundError, Embedder
 from .grid_coverer import GridCoverer
 from .solution_ranker import SolutionRanker
@@ -26,13 +26,13 @@ class Solver:
         puzzle: Puzzle,
         *,
         finder: WordFinder | None = None,
-        coverer: GridCoverer | None = None,
+        coverer: GridCovererProtocol | None = None,
         spangram_finder: SpangramFinder | None = None,
         ranker: SolutionRanker | None = None,
     ):
         self._puzzle = puzzle
         self._finder = finder or WordFinder(puzzle.grid)
-        self._coverer = coverer or GridCoverer(puzzle.grid)
+        self._coverer: GridCovererProtocol = coverer or GridCoverer(puzzle.grid)
         self._spangram_finder = spangram_finder or SpangramFinder(
             puzzle.grid, num_words=puzzle.num_words
         )
