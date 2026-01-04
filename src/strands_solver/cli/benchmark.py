@@ -2,7 +2,9 @@ import asyncio
 import datetime
 import logging
 import multiprocessing
+import os
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
 
@@ -71,6 +73,18 @@ RESULT_COLUMNS = ["Puzzle Date", "Result", "Time (s)", "Words", "Covers", "Solut
 RESULT_COLUMNS_ALIGNMENT = ("left", "left", "right", "right", "right", "right")
 
 
+@dataclass
+class BenchmarkSummary:
+    num_puzzles: int
+    num_passed: int
+    total_time_seconds: float
+    api_key_used: bool
+
+    @property
+    def pass_rate(self) -> float:
+        return self.num_passed / self.num_puzzles if self.num_puzzles > 0 else 0
+
+
 def load_existing_results(path: Path) -> pd.DataFrame:
     """Loads existing results from Markdown file."""
     if not path.exists():
@@ -79,6 +93,15 @@ def load_existing_results(path: Path) -> pd.DataFrame:
     try:
         with open(path) as f:
             content = f.read()
+        # Find the results table (starts with "| Puzzle Date")
+        lines = content.split("\n")
+        results_start = None
+        for i, line in enumerate(lines):
+            if line.startswith("| Puzzle Date"):
+                results_start = i
+                break
+        if results_start is not None:
+            content = "\n".join(lines[results_start:])
         df = mdpd.from_md(content)
         # Add missing columns for backwards compatibility
         for col in RESULT_COLUMNS:
@@ -89,21 +112,31 @@ def load_existing_results(path: Path) -> pd.DataFrame:
         return pd.DataFrame(columns=pd.Index(RESULT_COLUMNS))
 
 
-def save_results(df: pd.DataFrame, path: Path) -> None:
+def save_results(df: pd.DataFrame, path: Path, summary: BenchmarkSummary) -> None:
     """Saves results to a Markdown file."""
     # Ensure columns are in the correct order
     df = pd.DataFrame(df[RESULT_COLUMNS])
     df = df.sort_values("Puzzle Date").reset_index(drop=True)
 
-    total = len(df)
-    passed = df["Result"].str.contains("PASS").sum()
-    pass_rate = (passed / total) if total > 0 else 0
+    # Build summary table
+    summary_data = {
+        "Puzzles": [str(summary.num_puzzles)],
+        "Passed": [str(summary.num_passed)],
+        "Pass Rate": [f"{summary.pass_rate:.1%}"],
+        "Total Time": [f"{summary.total_time_seconds:.1f}s"],
+        "API Key": ["Yes" if summary.api_key_used else "No"],
+    }
+    summary_df = pd.DataFrame(summary_data)
 
     with open(path, "w") as f:
+        summary_markdown = summary_df.to_markdown(index=False)
+        assert summary_markdown is not None
+        f.write(summary_markdown)
+        f.write("\n\n")
         markdown = df.to_markdown(index=False, colalign=RESULT_COLUMNS_ALIGNMENT)
         assert markdown is not None
         f.write(markdown)
-        f.write(f"\n\nPass rate: **{pass_rate:.3f}** ({passed}/{total})\n")
+        f.write("\n")
 
 
 async def async_benchmark(
@@ -114,9 +147,11 @@ async def async_benchmark(
 ) -> None:
     """Runs the benchmark on a set of puzzles."""
     nyt = NYT()
+    api_key_used = bool(os.getenv("GEMINI_API_KEY"))
 
     existing_df = load_existing_results(results_path)
     results: list[dict[str, str]] = []
+    total_time = 0.0
 
     current = start_date
     dates = []
@@ -135,6 +170,7 @@ async def async_benchmark(
         words_str = ""
         covers_str = ""
         solutions_str = ""
+        elapsed = 0.0
 
         try:
             puzzle = nyt.fetch_puzzle(date)
@@ -171,12 +207,15 @@ async def async_benchmark(
 
         except TimeoutError:
             result_status = "⏱️ TIMEOUT"
+            elapsed = timeout if timeout else 0.0
             elapsed_str = f">{timeout:.0f}" if timeout else ""
             logger.info(f"Result of {date_str}: {result_status} ({elapsed_str}s)")
 
         except Exception as e:
             result_status = "⚠️ ERROR"
             logger.error(f"Result of {date_str}: {result_status} ({e})")
+
+        total_time += elapsed
 
         results.append(
             {
@@ -199,7 +238,29 @@ async def async_benchmark(
         merged_df = new_df
 
     assert isinstance(merged_df, pd.DataFrame)
-    save_results(merged_df, results_path)
+
+    # Calculate summary from merged results
+    num_puzzles = len(merged_df)
+    num_passed = int(merged_df["Result"].str.contains("PASS").sum())
+
+    # Sum up total time from all results
+    def parse_time(t: str) -> float:
+        if not t:
+            return 0.0
+        if t.startswith(">"):
+            return float(t[1:])
+        return float(t)
+
+    merged_total_time = merged_df["Time (s)"].apply(parse_time).sum()
+
+    summary = BenchmarkSummary(
+        num_puzzles=num_puzzles,
+        num_passed=num_passed,
+        total_time_seconds=merged_total_time,
+        api_key_used=api_key_used,
+    )
+
+    save_results(merged_df, results_path, summary)
     logger.info(f"Results saved to {results_path}")
 
 
