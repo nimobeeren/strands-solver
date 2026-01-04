@@ -1,2 +1,6 @@
-Puzzles,Passed,Pass Rate,Total Time (s),API Key
-122,23,0.189,3185.7,True
+Metric,Value
+Puzzles,122
+Passed,23
+Pass Rate,0.189
+Total Time (s),3185.7
+Used API,True

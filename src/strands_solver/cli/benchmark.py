@@ -112,13 +112,16 @@ def save_results(df: pd.DataFrame, report_dir: Path, summary: BenchmarkSummary) 
     results_path = report_dir / "results.csv"
     df.to_csv(results_path, index=False)
 
-    # Save summary CSV
+    # Save summary CSV (transposed: metrics as rows)
     summary_data = {
-        "Puzzles": [summary.num_puzzles],
-        "Passed": [summary.num_passed],
-        "Pass Rate": [round(summary.pass_rate, 3)],
-        "Total Time (s)": [round(summary.total_time_seconds, 1)],
-        "API Key": [summary.api_key_used],
+        "Metric": ["Puzzles", "Passed", "Pass Rate", "Total Time (s)", "Used API"],
+        "Value": [
+            summary.num_puzzles,
+            summary.num_passed,
+            round(summary.pass_rate, 3),
+            round(summary.total_time_seconds, 1),
+            summary.api_key_used,
+        ],
     }
     summary_df = pd.DataFrame(summary_data)
     summary_path = report_dir / "summary.csv"
