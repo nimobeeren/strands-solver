@@ -148,7 +148,7 @@ uv run strands-solver embed           # embed words not already cached
 uv run strands-solver embed --reload  # re-embed all words
 ```
 
-The embeddings database is stored in the user data directory (`~/.local/share/strands-solver/embeddings.db` on Linux, `~/Library/Application Support/strands-solver/embeddings.db` on macOS, `%LOCALAPPDATA%\strands-solver\embeddings.db` on Windows).
+The embeddings database is stored in the user cache directory (`~/.cache/strands-solver/embeddings.db` on Linux, `~/Library/Caches/strands-solver/embeddings.db` on macOS, `%LOCALAPPDATA%\strands-solver\Cache\embeddings.db` on Windows).
 
 ## Motivation
 

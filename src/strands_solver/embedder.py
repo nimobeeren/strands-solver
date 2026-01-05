@@ -22,9 +22,9 @@ MAX_CONCURRENT_REQUESTS = 10
 
 
 def get_default_db_path() -> Path:
-    """Returns the default embeddings database path in the user data directory."""
-    data_dir = Path(platformdirs.user_data_dir("strands-solver"))
-    return data_dir / "embeddings.db"
+    """Returns the default embeddings database path in the user cache directory."""
+    cache_dir = Path(platformdirs.user_cache_dir("strands-solver"))
+    return cache_dir / "embeddings.db"
 
 
 class CachePolicy(Enum):
