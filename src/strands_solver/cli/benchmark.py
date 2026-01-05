@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
 
+import mdpd
 import pandas as pd
 import typer
 from dotenv import load_dotenv
@@ -84,13 +85,17 @@ class BenchmarkSummary:
 
 
 def load_existing_results(report_dir: Path) -> pd.DataFrame:
-    """Loads existing results from CSV file."""
-    results_path = report_dir / "results.csv"
+    """Loads existing results from Markdown file."""
+    results_path = report_dir / "results.md"
     if not results_path.exists():
         return pd.DataFrame(columns=pd.Index(RESULT_COLUMNS))
 
     try:
-        df = pd.read_csv(results_path)
+        content = results_path.read_text()
+        df = mdpd.from_md(content)
+        # Normalize Result column (remove emojis for internal processing)
+        if "Result" in df.columns:
+            df["Result"] = df["Result"].apply(_normalize_result)
         # Add missing columns for backwards compatibility
         for col in RESULT_COLUMNS:
             if col not in df.columns:
@@ -100,32 +105,69 @@ def load_existing_results(report_dir: Path) -> pd.DataFrame:
         return pd.DataFrame(columns=pd.Index(RESULT_COLUMNS))
 
 
+def _normalize_result(result: str) -> str:
+    """Normalize result string by removing emojis."""
+    if "PASS" in result:
+        return "PASS"
+    if "FAIL" in result:
+        return "FAIL"
+    if "TIMEOUT" in result:
+        return "TIMEOUT"
+    if "ERROR" in result:
+        return "ERROR"
+    return result
+
+
+def _format_result(result: str) -> str:
+    """Format result string with emojis for display."""
+    if result == "PASS":
+        return "✅ PASS"
+    if result == "FAIL":
+        return "❌ FAIL"
+    if result == "TIMEOUT":
+        return "⏱️ TIMEOUT"
+    if result == "ERROR":
+        return "⚠️ ERROR"
+    return result
+
+
+RESULT_COLUMNS_ALIGNMENT = ("left", "left", "right", "right", "right", "right")
+
+
 def save_results(df: pd.DataFrame, report_dir: Path, summary: BenchmarkSummary) -> None:
-    """Saves results to CSV files in the report directory."""
+    """Saves results to Markdown files in the report directory."""
     report_dir.mkdir(parents=True, exist_ok=True)
 
     # Ensure columns are in the correct order
     df = pd.DataFrame(df[RESULT_COLUMNS])
     df = df.sort_values("Puzzle Date").reset_index(drop=True)
 
-    # Save results CSV
-    results_path = report_dir / "results.csv"
-    df.to_csv(results_path, index=False)
+    # Format Result column with emojis for display
+    display_df = df.copy()
+    display_df["Result"] = display_df["Result"].apply(_format_result)
 
-    # Save summary CSV (transposed: metrics as rows)
+    # Save results.md
+    results_path = report_dir / "results.md"
+    markdown = display_df.to_markdown(index=False, colalign=RESULT_COLUMNS_ALIGNMENT)
+    assert markdown is not None
+    results_path.write_text(markdown + "\n")
+
+    # Save summary.md (transposed: metrics as rows)
     summary_data = {
         "Metric": ["Puzzles", "Passed", "Pass Rate", "Total Time (s)", "Used API"],
         "Value": [
-            summary.num_puzzles,
-            summary.num_passed,
-            round(summary.pass_rate, 3),
-            round(summary.total_time_seconds, 1),
-            summary.api_key_used,
+            str(summary.num_puzzles),
+            str(summary.num_passed),
+            f"{summary.pass_rate:.1%}",
+            f"{summary.total_time_seconds:.1f}s",
+            "Yes" if summary.api_key_used else "No",
         ],
     }
     summary_df = pd.DataFrame(summary_data)
-    summary_path = report_dir / "summary.csv"
-    summary_df.to_csv(summary_path, index=False)
+    summary_path = report_dir / "summary.md"
+    summary_markdown = summary_df.to_markdown(index=False)
+    assert summary_markdown is not None
+    summary_path.write_text(summary_markdown + "\n")
 
 
 async def async_benchmark(
@@ -283,7 +325,7 @@ def benchmark(
         typer.Option(
             "--report-dir",
             "-r",
-            help="Directory where benchmark results are written (summary.csv and results.csv).",
+            help="Directory where benchmark results are written (summary.md and results.md).",
         ),
     ] = Path("report"),
 ) -> None:
