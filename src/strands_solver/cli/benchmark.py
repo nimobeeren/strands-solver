@@ -2,7 +2,9 @@ import asyncio
 import datetime
 import logging
 import multiprocessing
+import os
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
 
@@ -68,18 +70,32 @@ def run_solver_with_timeout(
 
 
 RESULT_COLUMNS = ["Puzzle Date", "Result", "Time (s)", "Words", "Covers", "Solutions"]
-RESULT_COLUMNS_ALIGNMENT = ("left", "left", "right", "right", "right", "right")
 
 
-def load_existing_results(path: Path) -> pd.DataFrame:
+@dataclass
+class BenchmarkSummary:
+    num_puzzles: int
+    num_passed: int
+    total_time_seconds: float
+    api_key_used: bool
+
+    @property
+    def pass_rate(self) -> float:
+        return self.num_passed / self.num_puzzles if self.num_puzzles > 0 else 0
+
+
+def load_existing_results(report_dir: Path) -> pd.DataFrame:
     """Loads existing results from Markdown file."""
-    if not path.exists():
+    results_path = report_dir / "results.md"
+    if not results_path.exists():
         return pd.DataFrame(columns=pd.Index(RESULT_COLUMNS))
 
     try:
-        with open(path) as f:
-            content = f.read()
+        content = results_path.read_text()
         df = mdpd.from_md(content)
+        # Normalize Result column (remove emojis for internal processing)
+        if "Result" in df.columns:
+            df["Result"] = df["Result"].apply(_normalize_result)
         # Add missing columns for backwards compatibility
         for col in RESULT_COLUMNS:
             if col not in df.columns:
@@ -89,34 +105,84 @@ def load_existing_results(path: Path) -> pd.DataFrame:
         return pd.DataFrame(columns=pd.Index(RESULT_COLUMNS))
 
 
-def save_results(df: pd.DataFrame, path: Path) -> None:
-    """Saves results to a Markdown file."""
+def _normalize_result(result: str) -> str:
+    """Normalize result string by removing emojis."""
+    if "PASS" in result:
+        return "PASS"
+    if "FAIL" in result:
+        return "FAIL"
+    if "TIMEOUT" in result:
+        return "TIMEOUT"
+    if "ERROR" in result:
+        return "ERROR"
+    return result
+
+
+def _format_result(result: str) -> str:
+    """Format result string with emojis for display."""
+    if result == "PASS":
+        return "✅ PASS"
+    if result == "FAIL":
+        return "❌ FAIL"
+    if result == "TIMEOUT":
+        return "⏱️ TIMEOUT"
+    if result == "ERROR":
+        return "⚠️ ERROR"
+    return result
+
+
+RESULT_COLUMNS_ALIGNMENT = ("left", "left", "right", "right", "right", "right")
+
+
+def save_results(df: pd.DataFrame, report_dir: Path, summary: BenchmarkSummary) -> None:
+    """Saves results to Markdown files in the report directory."""
+    report_dir.mkdir(parents=True, exist_ok=True)
+
     # Ensure columns are in the correct order
     df = pd.DataFrame(df[RESULT_COLUMNS])
     df = df.sort_values("Puzzle Date").reset_index(drop=True)
 
-    total = len(df)
-    passed = df["Result"].str.contains("PASS").sum()
-    pass_rate = (passed / total) if total > 0 else 0
+    # Format Result column with emojis for display
+    display_df = df.copy()
+    display_df["Result"] = display_df["Result"].apply(_format_result)
 
-    with open(path, "w") as f:
-        markdown = df.to_markdown(index=False, colalign=RESULT_COLUMNS_ALIGNMENT)
-        assert markdown is not None
-        f.write(markdown)
-        f.write(f"\n\nPass rate: **{pass_rate:.3f}** ({passed}/{total})\n")
+    # Save results.md
+    results_path = report_dir / "results.md"
+    markdown = display_df.to_markdown(index=False, colalign=RESULT_COLUMNS_ALIGNMENT)
+    assert markdown is not None
+    results_path.write_text(markdown + "\n")
+
+    # Save summary.md (transposed: metrics as rows)
+    summary_data = {
+        "Metric": ["Puzzles", "Passed", "Pass Rate", "Total Time (s)", "Used API"],
+        "Value": [
+            str(summary.num_puzzles),
+            str(summary.num_passed),
+            f"{summary.pass_rate:.1%}",
+            f"{summary.total_time_seconds:.1f}s",
+            "Yes" if summary.api_key_used else "No",
+        ],
+    }
+    summary_df = pd.DataFrame(summary_data)
+    summary_path = report_dir / "summary.md"
+    summary_markdown = summary_df.to_markdown(index=False)
+    assert summary_markdown is not None
+    summary_path.write_text(summary_markdown + "\n")
 
 
 async def async_benchmark(
     start_date: datetime.date,
     end_date: datetime.date,
     timeout: float | None,
-    results_path: Path,
+    report_dir: Path,
 ) -> None:
     """Runs the benchmark on a set of puzzles."""
     nyt = NYT()
+    api_key_used = bool(os.getenv("GEMINI_API_KEY"))
 
-    existing_df = load_existing_results(results_path)
+    existing_df = load_existing_results(report_dir)
     results: list[dict[str, str]] = []
+    total_time = 0.0
 
     current = start_date
     dates = []
@@ -135,6 +201,7 @@ async def async_benchmark(
         words_str = ""
         covers_str = ""
         solutions_str = ""
+        elapsed = 0.0
 
         try:
             puzzle = nyt.fetch_puzzle(date)
@@ -152,31 +219,34 @@ async def async_benchmark(
                     solutions_str = str(stats.num_solutions)
 
             if solution is None:
-                result_status = "❌ FAIL"
+                result_status = "FAIL"
                 logger.info(
                     f"Result of {date_str}: {result_status} (no solutions found)"
                 )
             else:
                 official = nyt.fetch_solution(date)
                 if solution.equivalent(official):
-                    result_status = "✅ PASS"
+                    result_status = "PASS"
                     logger.info(
                         f"Result of {date_str}: {result_status} ({elapsed_str}s)"
                     )
                 else:
-                    result_status = "❌ FAIL"
+                    result_status = "FAIL"
                     logger.info(
                         f"Result of {date_str}: {result_status} (solution mismatch)"
                     )
 
         except TimeoutError:
-            result_status = "⏱️ TIMEOUT"
+            result_status = "TIMEOUT"
+            elapsed = timeout if timeout else 0.0
             elapsed_str = f">{timeout:.0f}" if timeout else ""
             logger.info(f"Result of {date_str}: {result_status} ({elapsed_str}s)")
 
         except Exception as e:
-            result_status = "⚠️ ERROR"
+            result_status = "ERROR"
             logger.error(f"Result of {date_str}: {result_status} ({e})")
+
+        total_time += elapsed
 
         results.append(
             {
@@ -199,8 +269,30 @@ async def async_benchmark(
         merged_df = new_df
 
     assert isinstance(merged_df, pd.DataFrame)
-    save_results(merged_df, results_path)
-    logger.info(f"Results saved to {results_path}")
+
+    # Calculate summary from merged results
+    num_puzzles = len(merged_df)
+    num_passed = int(merged_df["Result"].str.contains("PASS").sum())
+
+    # Sum up total time from all results
+    def parse_time(t: str) -> float:
+        if not t:
+            return 0.0
+        if t.startswith(">"):
+            return float(t[1:])
+        return float(t)
+
+    merged_total_time = merged_df["Time (s)"].apply(parse_time).sum()
+
+    summary = BenchmarkSummary(
+        num_puzzles=num_puzzles,
+        num_passed=num_passed,
+        total_time_seconds=merged_total_time,
+        api_key_used=api_key_used,
+    )
+
+    save_results(merged_df, report_dir, summary)
+    logger.info(f"Results saved to {report_dir}")
 
 
 def benchmark(
@@ -228,14 +320,14 @@ def benchmark(
             help="Timeout in seconds per puzzle. Set to 0 to disable.",
         ),
     ] = 90,
-    results: Annotated[
+    report_dir: Annotated[
         Path,
         typer.Option(
-            "--results",
+            "--report-dir",
             "-r",
-            help="Path to a file where benchmark results are written in a Markdown table.",
+            help="Directory where benchmark results are written (summary.md and results.md).",
         ),
-    ] = Path("RESULTS.md"),
+    ] = Path("report"),
 ) -> None:
     """Benchmark the solver against a set of puzzles."""
     try:
@@ -251,4 +343,6 @@ def benchmark(
 
     effective_timeout = timeout if timeout > 0 else None
 
-    asyncio.run(async_benchmark(parsed_start, parsed_end, effective_timeout, results))
+    asyncio.run(
+        async_benchmark(parsed_start, parsed_end, effective_timeout, report_dir)
+    )
