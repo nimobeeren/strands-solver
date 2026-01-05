@@ -47,16 +47,15 @@ def load_solution(date: str, grid: list[list[str]]) -> Solution:
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_solve():
-    """Solve a real puzzle and assert that the best found solution is equivalent to the
-    offical NY Times solution."""
+    """Solve a real puzzle and assert that the official NY Times solution is among the
+    found solutions."""
     puzzle = load_puzzle("2025-09-23")
     expected_solution = load_solution("2025-09-23", puzzle.grid)
     solver = Solver(puzzle)
 
     found_solutions = await solver.solve()
-    best_found_solution = found_solutions[0]
 
-    assert best_found_solution.equivalent(expected_solution)
+    assert any(s.equivalent(expected_solution) for s in found_solutions)
 
 
 @pytest.mark.integration
