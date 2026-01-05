@@ -2,6 +2,9 @@ from itertools import combinations
 
 from .common import Cover, Solution, Strand
 
+# Default minimum word length for non-spangram words
+DEFAULT_MIN_WORD_LENGTH = 4
+
 
 class SpangramFinder:
     """Finds solutions with a spangram given a set of covers."""
@@ -12,6 +15,7 @@ class SpangramFinder:
         *,
         num_words: int,
         spangram_max_words: int = 5,
+        min_word_length: int = DEFAULT_MIN_WORD_LENGTH,
     ):
         """
         Parameters:
@@ -22,10 +26,13 @@ class SpangramFinder:
             form a spangram. We assume there is a limit to this because finding all
             solutions would take a long time when allowing cases where the spangram
             consists of many short words.
+        - min_word_length: Minimum length for non-spangram words. Words shorter than
+            this can only appear as part of a concatenated spangram.
         """
         self._grid = grid
         self._num_words = num_words
         self._spangram_max_words = spangram_max_words
+        self._min_word_length = min_word_length
         self._num_rows = len(grid)
         self._num_cols = len(grid[0])
 
@@ -49,7 +56,10 @@ class SpangramFinder:
 
         Equivalent solutions are deduplicated.
         """
-        # Identify duplicate words across all covers
+        # Identify "spangram-only" words - words that can only appear as part of a
+        # concatenated spangram, not as standalone non-spangram words. This includes:
+        # 1. Duplicate words (appear in multiple positions in the grid)
+        # 2. Short words (less than min_word_length)
         all_strands = set()
         for cover in covers:
             all_strands |= cover
@@ -60,13 +70,19 @@ class SpangramFinder:
                 words_by_string[strand.string] = []
             words_by_string[strand.string].append(strand)
 
-        # A word is a duplicate if it appears with different position sets
-        duplicate_strings = set()
+        # A word is spangram-only if:
+        # 1. It's a duplicate (appears with different position sets), OR
+        # 2. It's shorter than min_word_length
+        spangram_only_strings = set()
         for word_string, strands in words_by_string.items():
-            if len(strands) > 1:
+            # Check if it's a short word
+            if len(word_string) < self._min_word_length:
+                spangram_only_strings.add(word_string)
+            # Check if it's a duplicate (appears in multiple positions)
+            elif len(strands) > 1:
                 position_sets = [frozenset(strand.positions) for strand in strands]
                 if len(set(position_sets)) > 1:
-                    duplicate_strings.add(word_string)
+                    spangram_only_strings.add(word_string)
 
         # Find covers which have the correct number of words
         solutions = set[Solution]()
@@ -80,11 +96,19 @@ class SpangramFinder:
             # any words
             elif len(cover) == self._num_words:
                 # For every spangram in the cover, add a solution with that spangram
+                # But only if no non-spangram strand is spangram-only
                 for strand in cover:
                     if strand.is_spangram(self._num_rows, self._num_cols):
+                        non_spangram_strands = cover - {strand}
+                        # Check that no non-spangram strand is spangram-only
+                        if any(
+                            s.string in spangram_only_strings
+                            for s in non_spangram_strands
+                        ):
+                            continue
                         solution = Solution(
                             spangram=(strand,),
-                            non_spangram_strands=frozenset(cover - {strand}),
+                            non_spangram_strands=frozenset(non_spangram_strands),
                         )
                         solutions.add(solution)
 
@@ -100,21 +124,20 @@ class SpangramFinder:
                 if K > self._spangram_max_words:
                     continue
 
-                # Optimization: we only try concatenations that include all duplicate
-                # words (words that can be formed in multiple positions in the grid),
-                # since real solutions never contain duplicate words except
-                # when concatenated.
+                # Optimization: we only try concatenations that include all spangram-only
+                # words (short words or words appearing in multiple positions), since
+                # these can only appear as part of a concatenated spangram.
 
-                # Identify duplicates in this cover
-                duplicates_in_cover = [
-                    strand for strand in cover if strand.string in duplicate_strings
+                # Identify spangram-only words in this cover
+                spangram_only_in_cover = [
+                    strand for strand in cover if strand.string in spangram_only_strings
                 ]
-                D = len(duplicates_in_cover)
+                S = len(spangram_only_in_cover)
 
-                # If there are more duplicates than words to concatenate, we can't
-                # include all duplicates in the concatenation. Therefore, this cover
-                # can never be a real solution.
-                if D > K:
+                # If there are more spangram-only words than words to concatenate, we
+                # can't include all of them in the concatenation. Therefore, this cover
+                # can never produce a valid solution.
+                if S > K:
                     continue
 
                 # Build adjacency graph: map each word to words that can follow it
@@ -127,9 +150,9 @@ class SpangramFinder:
                         if word != other and word.can_concatenate(other)
                     ]
 
-                if D == 0:
-                    # No duplicates, need to try all K-length orderings of words in
-                    # the cover
+                if S == 0:
+                    # No spangram-only words, need to try all K-length orderings of
+                    # words in the cover
                     for words_to_concat in combinations(cover, K):
                         for ordering in self._find_orderings(
                             words_to_concat, adjacency
@@ -145,17 +168,19 @@ class SpangramFinder:
                                 )
                                 solutions.add(solution)
                 else:
-                    # Only try combinations that include all duplicates
-                    non_duplicates = [
-                        strand for strand in cover if strand not in duplicates_in_cover
+                    # Only try combinations that include all spangram-only words
+                    regular_words = [
+                        strand
+                        for strand in cover
+                        if strand not in spangram_only_in_cover
                     ]
 
-                    # Need to choose (K - D) non-duplicates to go with D duplicates
-                    num_non_duplicates_needed = K - D
+                    # Need to choose (K - S) regular words to go with S spangram-only
+                    num_regular_needed = K - S
 
-                    if num_non_duplicates_needed == 0:
-                        # All words to concatenate are duplicates
-                        words_to_concat = tuple(duplicates_in_cover)
+                    if num_regular_needed == 0:
+                        # All words to concatenate are spangram-only
+                        words_to_concat = tuple(spangram_only_in_cover)
                         for ordering in self._find_orderings(
                             words_to_concat, adjacency
                         ):
@@ -170,11 +195,13 @@ class SpangramFinder:
                                 )
                                 solutions.add(solution)
                     else:
-                        # Try combinations of non-duplicates with all duplicates
-                        for non_dup_combo in combinations(
-                            non_duplicates, num_non_duplicates_needed
+                        # Try combinations of regular words with all spangram-only words
+                        for regular_combo in combinations(
+                            regular_words, num_regular_needed
                         ):
-                            words_to_concat = tuple(duplicates_in_cover) + non_dup_combo
+                            words_to_concat = (
+                                tuple(spangram_only_in_cover) + regular_combo
+                            )
                             for ordering in self._find_orderings(
                                 words_to_concat, adjacency
                             ):
