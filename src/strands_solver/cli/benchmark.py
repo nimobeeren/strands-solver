@@ -86,7 +86,7 @@ class BenchmarkSummary:
 
 def load_existing_results(report_dir: Path) -> pd.DataFrame:
     """Loads existing results from Markdown file."""
-    results_path = report_dir / "results.md"
+    results_path = report_dir / "details.md"
     if not results_path.exists():
         return pd.DataFrame(columns=pd.Index(RESULT_COLUMNS))
 
@@ -146,8 +146,8 @@ def save_results(df: pd.DataFrame, report_dir: Path, summary: BenchmarkSummary) 
     display_df = df.copy()
     display_df["Result"] = display_df["Result"].apply(_format_result)
 
-    # Save results.md
-    results_path = report_dir / "results.md"
+    # Save details.md
+    results_path = report_dir / "details.md"
     markdown = display_df.to_markdown(index=False, colalign=RESULT_COLUMNS_ALIGNMENT)
     assert markdown is not None
     results_path.write_text(markdown + "\n")
@@ -325,7 +325,7 @@ def benchmark(
         typer.Option(
             "--report-dir",
             "-r",
-            help="Directory where benchmark results are written (summary.md and results.md).",
+            help="Directory where benchmark results are written (summary.md and details.md).",
         ),
     ] = Path("report"),
 ) -> None:

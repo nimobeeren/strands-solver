@@ -38,6 +38,6 @@ def test_benchmark(tmp_path):
     )
     assert result.returncode == 0
     assert (report_dir / "summary.md").exists()
-    assert (report_dir / "results.md").exists()
-    results_content = (report_dir / "results.md").read_text()
+    assert (report_dir / "details.md").exists()
+    results_content = (report_dir / "details.md").read_text()
     assert "2025-09-23" in results_content
