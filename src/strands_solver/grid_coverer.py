@@ -15,23 +15,19 @@ class GridCoverer:
         """Finds ways to cover the grid by choosing a subset of the strands without overlapping."""
         # Convert to list for indexing
         strands_list = list(strands)
-        self._strand_masks, self._cell_to_strand_idx = self._build_indices(strands_list)
+        self._strand_masks, self._cell_to_strand_idx, self._crosses_mask = (
+            self._build_indices(strands_list)
+        )
 
-        # Find all covers without crossing checks (faster recursion)
+        # Find all covers
         results = self._cover_rec()
 
         # Map indices back to Strands
-        all_covers = {Cover(strands_list[i] for i in result) for result in results}
+        return {Cover(strands_list[i] for i in result) for result in results}
 
-        # Remove covers with crossing strands
-        valid_covers = set()
-        for cover in all_covers:
-            if not self._cover_has_crossing(cover):
-                valid_covers.add(cover)
-
-        return valid_covers
-
-    def _cover_rec(self, *, covered_mask: int = 0) -> list[list[int]]:
+    def _cover_rec(
+        self, *, covered_mask: int = 0, selected_mask: int = 0
+    ) -> list[list[int]]:
         """Recursive backtracking search that covers all grid cells exactly once using
         MRV (Minimum Remaining Values) branching.
 
@@ -44,6 +40,7 @@ class GridCoverer:
         - For each candidate `Strand`, precompute a bit mask of its covered cells
         - At each step, choose the uncovered cell with the fewest available candidates (MRV)
         - Branch only on strands that cover that cell and do not overlap already covered cells
+        - Prune branches where adding a strand would cause a crossing with already-selected strands
         """
         # If fully covered, we found a solution
         all_cells_mask = (1 << self._num_cells) - 1
@@ -51,8 +48,8 @@ class GridCoverer:
             # There is exactly one sub-solution and it contains no strands
             return [[]]
 
-        # MRV: choose the uncovered cell with the fewest available non-overlapping
-        # strands
+        # MRV: choose the uncovered cell with the fewest available non-overlapping,
+        # non-crossing strands
         best_candidates: list[int] | None = None
 
         for cell_index in range(self._num_cells):
@@ -63,6 +60,7 @@ class GridCoverer:
                 w_idx
                 for w_idx in self._cell_to_strand_idx[cell_index]
                 if (self._strand_masks[w_idx] & covered_mask) == 0
+                and (self._crosses_mask[w_idx] & selected_mask) == 0
             ]
 
             if not candidates:
@@ -78,27 +76,22 @@ class GridCoverer:
         # Try candidates for the most constrained cell
         solutions = []
         for w_idx in best_candidates:
-            new_mask = covered_mask | self._strand_masks[w_idx]
-            sub_solutions = self._cover_rec(covered_mask=new_mask)
+            new_covered = covered_mask | self._strand_masks[w_idx]
+            new_selected = selected_mask | (1 << w_idx)
+            sub_solutions = self._cover_rec(
+                covered_mask=new_covered, selected_mask=new_selected
+            )
             # Prepend w_idx to each sub-solution
             for sub in sub_solutions:
                 solutions.append([w_idx] + sub)
 
         return solutions
 
-    def _cover_has_crossing(self, cover: Cover) -> bool:
-        """Checks if any strands in the cover cross each other."""
-        strands = list(cover)
-        for i in range(len(strands)):
-            for j in range(i + 1, len(strands)):
-                if strands[i].crosses(strands[j]):
-                    return True
-        return False
-
     def _build_indices(self, strands: list[Strand]):
         """Computes:
         - `strand_masks`: bit mask per strand (1 bit per grid cell it covers)
         - `cell_to_strands`: for each cell index, list of strand indices that cover it
+        - `crosses_mask`: bit mask per strand (1 bit per strand it crosses)
         """
         strand_masks: list[int] = []
         cell_to_strands: list[list[int]] = [[] for _ in range(self._num_cells)]
@@ -111,4 +104,12 @@ class GridCoverer:
                 cell_to_strands[bit_index].append(i)
             strand_masks.append(mask)
 
-        return strand_masks, cell_to_strands
+        # Precompute crossing relationships between all strand pairs
+        crosses_mask: list[int] = [0] * len(strands)
+        for i in range(len(strands)):
+            for j in range(i + 1, len(strands)):
+                if strands[i].crosses(strands[j]):
+                    crosses_mask[i] |= 1 << j
+                    crosses_mask[j] |= 1 << i
+
+        return strand_masks, cell_to_strands, crosses_mask
