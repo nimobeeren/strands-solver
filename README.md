@@ -30,14 +30,14 @@ More precisely, given
 - a phrase describing a theme
 - a number specifying the number of words (or, more accurately: strands) in the solution
 
-the solver attempts to find a set of _strands_ (sequences of adjacent letters in the grid) such that
+the solver attempts to find the set of _strands_ (sequences of adjacent letters in the grid) for which
 
+- the number of strands matches the given number of words
 - every letter in the grid is covered exactly once
 - every strand is at least 4 letters long
-- there is at least one strand (called the _spangram_) which spans the entire grid vertically or horizontally and which explains the theme
+- there is at least one strand (called the _spangram_) which spans the entire grid vertically or horizontally
 - every strand spells out a valid word (though the spangram may be a concatenation of multiple words)
-- all strands are somehow related to the theme
-- the number of strands matches the given number of words
+- all strands are maximally related to the theme (in a semantic, possibly cryptic way)
 
 ### Example
 
@@ -81,18 +81,21 @@ where the strands are
 🔵 HEAD
 ```
 
-This is the "correct" solution as provided by the New York Times. There are other valid solutions, but not all match the theme.
+This is the "correct" solution as provided by the New York Times. There are other valid solutions, but they don't match the theme quite as well.
 
 ## Results
 
-The solver has been validated and benchmarked on a set of official puzzles. Currently, it solves a subset of puzzles correctly. The results are recorded in [RESULTS.md](./RESULTS.md).
+The solver has been validated and benchmarked on a set of official puzzles. Currently, it solves a subset of puzzles correctly. Results are recorded in the [`report`](./report) directory:
+
+- [summary.md](./report/summary.md): a summary of the benchmark results
+- [details.md](./report/details.md): detailed results for each puzzle
 
 ## Limitations
 
-- Some puzzles can't be solved in a reasonable amount of time (see [RESULTS.md](./RESULTS.md)). Puzzles with many short words in the dictionary may be slower to solve.
+- Some puzzles can't be solved in a reasonable amount of time (see [results](./report/details.md)).
 - The solver usually finds multiple solutions but it doesn't always choose the solution that best fits the theme.
 - The solver will not find solutions where the spangram contains a contraction (like YOURE), which does appear in real solutions.
-- The dictionary (`dictionary.py`) uses the [ENABLE1](https://rressler.quarto.pub/i_data_sets/data_word_lists.html) word list, which is comprehensive but may occasionally miss some valid words or include uncommon ones. This may cause the solver to fail to find a valid solution.
+- The dictionary ([`dictionary.py`](./src/strands_solver/dictionary.py)) uses the [ENABLE1](https://rressler.quarto.pub/i_data_sets/data_word_lists.html) word list, which is comprehensive but may occasionally miss some valid words or include uncommon ones. This may cause the solver to fail to find a valid solution.
 
 ## Advanced Usage
 
@@ -120,13 +123,13 @@ uv run strands-solver show YYYY-MM-DD
 
 ### `benchmark`
 
-Benchmark the solver against a set of puzzles. Results are saved to a Markdown file.
+Benchmark the solver against a set of puzzles. Results are saved as CSV files (`summary.csv` and `results.csv`) in a report directory.
 
 ```bash
 uv run strands-solver benchmark                              # default: 2025-09-01 to 2025-12-31
 uv run strands-solver benchmark -s 2025-10-01 -e 2025-10-31  # custom date range
 uv run strands-solver benchmark -t 30                        # 30 second timeout per puzzle
-uv run strands-solver benchmark -r ./my_results.md           # custom results file
+uv run strands-solver benchmark -r ./my_reports              # custom report directory
 ```
 
 ### `embed`
@@ -147,7 +150,7 @@ uv run strands-solver embed           # embed words not already cached
 uv run strands-solver embed --reload  # re-embed all words
 ```
 
-The embeddings database is stored in `data/embeddings/embeddings.db`.
+The embeddings database is stored in the user cache directory (`~/.cache/strands-solver/embeddings.db` on Linux, `~/Library/Caches/strands-solver/embeddings.db` on macOS, `%LOCALAPPDATA%\strands-solver\Cache\embeddings.db` on Windows).
 
 ## Motivation
 
