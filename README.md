@@ -98,6 +98,8 @@ The solver has been validated and benchmarked on a set of official puzzles. Curr
 - The solver will not find solutions where the spangram contains a contraction (like YOURE), which does appear in real solutions.
 - The dictionary ([`dictionary.py`](./src/strands_solver/dictionary.py)) uses the [ENABLE1](https://rressler.quarto.pub/i_data_sets/data_word_lists.html) word list, which is comprehensive but may occasionally miss some valid words or include uncommon ones. This may cause the solver to fail to find a valid solution.
 
+Some ideas for tackling these limitations are listed in [IDEAS.md](./IDEAS.md).
+
 ## Advanced Usage
 
 The CLI provides four commands: `solve`, `show`, `benchmark`, and `embed`.

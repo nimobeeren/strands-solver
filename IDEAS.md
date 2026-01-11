@@ -1,12 +1,8 @@
-- allow shorter words but only if part of spangram
+- make coverer yield partial results instead of always enumerating all possible covers
+    - might make hardest puzzles feasible
+    - ideally use some way to prioritize "good" covers to increase likelihood of finding it
+        - maximize semantic similarity (as defined in SolutionRanker) during covering process
 - consider doing spangram finding before full covering?
-
-## Crossing checks with segment variables
-
-A more advanced formulation could introduce segment variables that explicitly track which segments are "active" and use geometric constraints:
-
-```
-For each potential crossing point (diagonal adjacency in grid):
-    Let seg_a, seg_b be the two diagonal segments through that point
-    At most one of seg_a, seg_b can be active
-```
+    - not sure how feasible, enumerating all spangrams might be prohibitively expensive when considering longer (3-4 word) concatenations
+- allow shorter words but only if part of spangram (needs perf optimizations to be feasible)
+    - makes puzzles which have a spangram consisting of at least one short word possible
