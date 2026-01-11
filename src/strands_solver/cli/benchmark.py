@@ -5,6 +5,7 @@ import multiprocessing
 import os
 import time
 from dataclasses import dataclass
+from importlib.metadata import version
 from pathlib import Path
 from typing import Annotated
 
@@ -74,6 +75,7 @@ RESULT_COLUMNS = ["Puzzle Date", "Result", "Time (s)", "Words", "Covers", "Solut
 
 @dataclass
 class BenchmarkSummary:
+    version: str
     num_puzzles: int
     num_passed: int
     total_time_seconds: float
@@ -183,8 +185,16 @@ def save_results(df: pd.DataFrame, report: Path, summary: BenchmarkSummary) -> N
 
     # Generate summary table
     summary_data = {
-        "Metric": ["Puzzles", "Passed", "Pass Rate", "Total Time (s)", "Used API"],
+        "Metric": [
+            "Version",
+            "Puzzles",
+            "Passed",
+            "Pass Rate",
+            "Total Time (s)",
+            "Used API",
+        ],
         "Value": [
+            summary.version,
             str(summary.num_puzzles),
             str(summary.num_passed),
             f"{summary.pass_rate:.1%}",
@@ -316,6 +326,7 @@ async def async_benchmark(
     merged_total_time = merged_df["Time (s)"].apply(parse_time).sum()
 
     summary = BenchmarkSummary(
+        version=version("strands-solver"),
         num_puzzles=num_puzzles,
         num_passed=num_passed,
         total_time_seconds=merged_total_time,

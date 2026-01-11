@@ -2,6 +2,7 @@
 
 | Metric         |   Value |
 |:---------------|--------:|
+| Version        |   0.1.0 |
 | Puzzles        |     122 |
 | Passed         |      25 |
 | Pass Rate      |   20.5% |
