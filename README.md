@@ -13,9 +13,9 @@ A solver for Strands, the New York Times puzzle game.
 ## Basic Usage
 
 ```bash
-uv run strands-solver solve today                # solve today's puzzle
-uv run strands-solver solve YYYY-MM-DD           # solve another day's puzzle
-uv run strands-solver solve path_to_puzzle.json  # solve puzzle from a file
+uvx strands-solver solve today                # solve today's puzzle
+uvx strands-solver solve YYYY-MM-DD           # solve another day's puzzle
+uvx strands-solver solve path_to_puzzle.json  # solve puzzle from a file
 ```
 
 See also [Advanced Usage](#advanced-usage).
@@ -106,10 +106,10 @@ The CLI provides four commands: `solve`, `show`, `benchmark`, and `embed`.
 Solve a Strands puzzle.
 
 ```bash
-uv run strands-solver solve today                 # solve today's puzzle
-uv run strands-solver solve YYYY-MM-DD            # solve another day's puzzle
-uv run strands-solver solve path_to_puzzle.json   # solve puzzle from a file
-uv run strands-solver solve today -o ./solutions  # write all solutions to a directory
+uvx strands-solver solve today                 # solve today's puzzle
+uvx strands-solver solve YYYY-MM-DD            # solve another day's puzzle
+uvx strands-solver solve path_to_puzzle.json   # solve puzzle from a file
+uvx strands-solver solve today -o ./solutions  # write all solutions to a directory
 ```
 
 ### `show`
@@ -117,8 +117,8 @@ uv run strands-solver solve today -o ./solutions  # write all solutions to a dir
 Display the official solution for a puzzle from the NY Times API (not used for solving).
 
 ```bash
-uv run strands-solver show today
-uv run strands-solver show YYYY-MM-DD
+uvx strands-solver show today
+uvx strands-solver show YYYY-MM-DD
 ```
 
 ### `benchmark`
@@ -126,10 +126,10 @@ uv run strands-solver show YYYY-MM-DD
 Benchmark the solver against a set of puzzles. A report of the results is saved to a Markdown file.
 
 ```bash
-uv run strands-solver benchmark                              # default: 2025-09-01 to 2025-12-31
-uv run strands-solver benchmark -s 2025-10-01 -e 2025-10-31  # custom date range
-uv run strands-solver benchmark -t 30                        # 30 second timeout per puzzle
-uv run strands-solver benchmark -r ./my_results.md           # custom report file
+uvx strands-solver benchmark                              # default: 2025-09-01 to 2025-12-31
+uvx strands-solver benchmark -s 2025-10-01 -e 2025-10-31  # custom date range
+uvx strands-solver benchmark -t 30                        # 30 second timeout per puzzle
+uvx strands-solver benchmark -r ./my_results.md           # custom report file
 ```
 
 ### `embed`
@@ -146,8 +146,8 @@ take a very long time due to rate limits. Storing the embeddings database also u
 To generate dictionary embeddings:
 
 ```bash
-uv run strands-solver embed           # embed words not already cached
-uv run strands-solver embed --reload  # re-embed all words
+uvx strands-solver embed           # embed words not already cached
+uvx strands-solver embed --reload  # re-embed all words
 ```
 
 The embeddings database is stored in the user cache directory (`~/.cache/strands-solver/embeddings.db` on Linux, `~/Library/Caches/strands-solver/embeddings.db` on macOS, `%LOCALAPPDATA%\strands-solver\Cache\embeddings.db` on Windows).
@@ -212,6 +212,18 @@ I was really happy with this workflow. My coding agent could look at my code, su
 > I've added an [export of my chat](./assets/cursor_algo_analysis.md) where I asked for analysis and algo suggestions.
 
 ## Development
+
+### Running locally
+
+Clone the repository and run:
+
+```bash
+uv run strands-solver
+```
+
+> [!NOTE]
+>
+> `uvx` runs the latest _published_ version, which doesn't include your local changes.
 
 ### Tests
 
