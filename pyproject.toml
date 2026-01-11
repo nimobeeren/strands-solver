@@ -1,6 +1,6 @@
 [project]
 name = "strands-solver"
-version = "0.1.0"
+version = "1.0.0"
 description = "A solver for Strands, the New York Times puzzle game."
 readme = "README.md"
 requires-python = ">=3.13"
