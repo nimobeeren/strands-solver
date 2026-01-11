@@ -155,7 +155,37 @@ uv run strands-solver embed --reload  # re-embed all words
 
 The embeddings database is stored in the user cache directory (`~/.cache/strands-solver/embeddings.db` on Linux, `~/Library/Caches/strands-solver/embeddings.db` on macOS, `%LOCALAPPDATA%\strands-solver\Cache\embeddings.db` on Windows).
 
-## Motivation
+## How It Works
+
+The solver finds solutions using a 4-phase algorithm:
+
+1. [`WordFinder`](./src/strands_solver/word_finder.py) — Find all strands in the grid that spell dictionary words. Starting from each cell, recursively take a step in all directions (using [DFS](https://en.wikipedia.org/wiki/Depth-first_search)), stopping if there is no word in the dictionary which starts with the strand so far.
+
+   > [!TIP]
+   >
+   > While legal, official solutions never _require_ a strand to cross itself. Therefore, we filter out self-crossing strands during word finding. This optimization reduces the total number of words and primarily speeds up following phases.
+
+2. [`GridCoverer`](./src/strands_solver/grid_coverer.py) — Find all ways to cover all cells of the grid exactly once using a subset of the words found in phase 1. This is an [exact cover](https://en.wikipedia.org/wiki/Exact_cover) problem solved with a backtracking algorithm that uses the [MRV (Minimum Remaining Values)](https://cs50.harvard.edu/extension/ai/2020/fall/notes/3/#backtracking-search) heuristic: always branch on the cell with the fewest covering strands.
+
+   > [!TIP]
+   >
+   > Official solutions never contain strands that cross each other. Therefore, we prevent this during covering. This optimization speeds up the covering phase by pruning branches early.
+
+3. [`SpangramFinder`](./src/strands_solver/spangram_finder.py) — Filter covers found in phase 2 to those containing a spangram. If the cover has more strands than the word count specified in the puzzle, try concatenating adjacent strands to form the spangram.
+
+   > [!TIP]
+   >
+   > Words that appear in multiple places in the grid (duplicates) can never be part of the solution, unless they are part of the spangram (concatenated with other words). Therefore, if a cover contains such a duplicate, we force it to be part of the spangram. This optimization speeds up spangram finding by reducing the number of concatenation combinations to try.
+
+4. [`SolutionRanker`](./src/strands_solver/solution_ranker.py) — Rank solutions found in phase 3 by semantic similarity between words in the solution and the theme. Compute [embeddings](https://en.wikipedia.org/wiki/Word_embedding) for all words and the theme, then score each solution by the average pairwise [cosine similarity](https://en.wikipedia.org/wiki/Cosine_similarity) between its words and the theme.
+
+   > [!TIP]
+   >
+   > Embeddings are cached on disk to reduce costs. Since we only embed single words from the dictionary and themes from puzzles, the total embedding cost is bounded (see [`embed`](#embed) usage).
+
+The main orchestration logic is in [`Solver`](./src/strands_solver/solver.py).
+
+## How It Was Made
 
 I started this project to try out modern coding agents on a non-trivial but easy to validate problem. I expected a little vibe-coding would get me most of the way there, but the problem proved to be a lot more challenging than I thought! Along the way though, I learned to collaborate with my coding agent in a way that truly extended my abilities.
 
