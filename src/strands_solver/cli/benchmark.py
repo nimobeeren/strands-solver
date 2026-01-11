@@ -84,22 +84,51 @@ class BenchmarkSummary:
         return self.num_passed / self.num_puzzles if self.num_puzzles > 0 else 0
 
 
-def load_existing_results(report_dir: Path) -> pd.DataFrame:
-    """Loads existing results from Markdown file."""
-    results_path = report_dir / "details.md"
-    if not results_path.exists():
+def _extract_table_after_heading(content: str, heading: str) -> str | None:
+    """Extract Markdown table content that follows a specific heading."""
+    lines = content.split("\n")
+    in_section = False
+    table_lines: list[str] = []
+
+    for line in lines:
+        # Check if this is the target heading
+        if line.strip().startswith("#") and heading.lower() in line.lower():
+            in_section = True
+            continue
+
+        # If we hit another heading, stop
+        if in_section and line.strip().startswith("#"):
+            break
+
+        # Collect table lines (start with |)
+        if in_section:
+            if line.strip().startswith("|"):
+                table_lines.append(line)
+            elif table_lines and not line.strip():
+                # Allow blank lines within the table section
+                continue
+            elif table_lines:
+                # Non-table content after table started means end of table
+                break
+
+    return "\n".join(table_lines) if table_lines else None
+
+
+def load_existing_results(report: Path) -> pd.DataFrame:
+    """Loads existing results from the details section of the report file."""
+    if not report.exists():
         return pd.DataFrame(columns=pd.Index(RESULT_COLUMNS))
 
     try:
-        content = results_path.read_text()
-        df = mdpd.from_md(content)
+        content = report.read_text()
+        table_content = _extract_table_after_heading(content, "Details")
+        if table_content is None:
+            return pd.DataFrame(columns=pd.Index(RESULT_COLUMNS))
+
+        df = mdpd.from_md(table_content)
         # Normalize Result column (remove emojis for internal processing)
         if "Result" in df.columns:
             df["Result"] = df["Result"].apply(_normalize_result)
-        # Add missing columns for backwards compatibility
-        for col in RESULT_COLUMNS:
-            if col not in df.columns:
-                df[col] = ""
         return df
     except Exception:
         return pd.DataFrame(columns=pd.Index(RESULT_COLUMNS))
@@ -134,9 +163,9 @@ def _format_result(result: str) -> str:
 RESULT_COLUMNS_ALIGNMENT = ("left", "left", "right", "right", "right", "right")
 
 
-def save_results(df: pd.DataFrame, report_dir: Path, summary: BenchmarkSummary) -> None:
-    """Saves results to Markdown files in the report directory."""
-    report_dir.mkdir(parents=True, exist_ok=True)
+def save_results(df: pd.DataFrame, report: Path, summary: BenchmarkSummary) -> None:
+    """Saves results to a Markdown file."""
+    report.parent.mkdir(parents=True, exist_ok=True)
 
     # Ensure columns are in the correct order
     df = pd.DataFrame(df[RESULT_COLUMNS])
@@ -146,13 +175,13 @@ def save_results(df: pd.DataFrame, report_dir: Path, summary: BenchmarkSummary) 
     display_df = df.copy()
     display_df["Result"] = display_df["Result"].apply(_format_result)
 
-    # Save details.md
-    results_path = report_dir / "details.md"
-    markdown = display_df.to_markdown(index=False, colalign=RESULT_COLUMNS_ALIGNMENT)
-    assert markdown is not None
-    results_path.write_text(markdown + "\n")
+    # Generate details table
+    details_markdown = display_df.to_markdown(
+        index=False, colalign=RESULT_COLUMNS_ALIGNMENT
+    )
+    assert details_markdown is not None
 
-    # Save summary.md (transposed: metrics as rows)
+    # Generate summary table
     summary_data = {
         "Metric": ["Puzzles", "Passed", "Pass Rate", "Total Time (s)", "Used API"],
         "Value": [
@@ -164,23 +193,25 @@ def save_results(df: pd.DataFrame, report_dir: Path, summary: BenchmarkSummary) 
         ],
     }
     summary_df = pd.DataFrame(summary_data)
-    summary_path = report_dir / "summary.md"
-    summary_markdown = summary_df.to_markdown(index=False)
+    summary_markdown = summary_df.to_markdown(index=False, colalign=("left", "right"))
     assert summary_markdown is not None
-    summary_path.write_text(summary_markdown + "\n")
+
+    # Combine into single file
+    content = f"## Summary\n\n{summary_markdown}\n\n## Details\n\n{details_markdown}\n"
+    report.write_text(content)
 
 
 async def async_benchmark(
     start_date: datetime.date,
     end_date: datetime.date,
     timeout: float | None,
-    report_dir: Path,
+    report: Path,
 ) -> None:
     """Runs the benchmark on a set of puzzles."""
     nyt = NYT()
     api_key_used = bool(os.getenv("GEMINI_API_KEY"))
 
-    existing_df = load_existing_results(report_dir)
+    existing_df = load_existing_results(report)
     results: list[dict[str, str]] = []
     total_time = 0.0
 
@@ -291,8 +322,8 @@ async def async_benchmark(
         api_key_used=api_key_used,
     )
 
-    save_results(merged_df, report_dir, summary)
-    logger.info(f"Results saved to {report_dir}")
+    save_results(merged_df, report, summary)
+    logger.info(f"Results saved to {report}")
 
 
 def benchmark(
@@ -320,14 +351,14 @@ def benchmark(
             help="Timeout in seconds per puzzle. Set to 0 to disable.",
         ),
     ] = 90,
-    report_dir: Annotated[
+    report: Annotated[
         Path,
         typer.Option(
-            "--report-dir",
+            "--report",
             "-r",
-            help="Directory where benchmark results are written (summary.md and details.md).",
+            help="Report file to write benchmark results to in Markdown format.",
         ),
-    ] = Path("report"),
+    ] = Path("results.md"),
 ) -> None:
     """Benchmark the solver against a set of puzzles."""
     try:
@@ -343,6 +374,4 @@ def benchmark(
 
     effective_timeout = timeout if timeout > 0 else None
 
-    asyncio.run(
-        async_benchmark(parsed_start, parsed_end, effective_timeout, report_dir)
-    )
+    asyncio.run(async_benchmark(parsed_start, parsed_end, effective_timeout, report))

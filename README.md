@@ -85,14 +85,11 @@ This is the "correct" solution as provided by the New York Times. There are othe
 
 ## Results
 
-The solver has been validated and benchmarked on a set of official puzzles. Currently, it solves a subset of puzzles correctly. Results are recorded in the [`report`](./report) directory:
-
-- [summary.md](./report/summary.md): a summary of the benchmark results
-- [details.md](./report/details.md): detailed results for each puzzle
+The solver has been validated and benchmarked on a set of official puzzles. Currently, it solves a subset of puzzles correctly. Results are recorded in [`results.md`](./results.md), which includes a summary and results for each puzzle.
 
 ## Limitations
 
-- Some puzzles can't be solved in a reasonable amount of time (see [results](./report/details.md)).
+- Some puzzles can't be solved in a reasonable amount of time (see [results](./results.md)).
 - The solver will only find a solution if the spangram is a single word or a concatenation of words which are each 4 letters or longer. In reality, the words in a concatenated spangram may be shorter than 4 letters.
 - The solver usually finds multiple solutions but it doesn't always choose the solution that best fits the theme.
 - The solver will not find solutions where the spangram contains a contraction (like YOURE), which does appear in real solutions.
@@ -126,13 +123,13 @@ uv run strands-solver show YYYY-MM-DD
 
 ### `benchmark`
 
-Benchmark the solver against a set of puzzles. Results are saved as CSV files (`summary.csv` and `results.csv`) in a report directory.
+Benchmark the solver against a set of puzzles. A report of the results is saved to a Markdown file.
 
 ```bash
 uv run strands-solver benchmark                              # default: 2025-09-01 to 2025-12-31
 uv run strands-solver benchmark -s 2025-10-01 -e 2025-10-31  # custom date range
 uv run strands-solver benchmark -t 30                        # 30 second timeout per puzzle
-uv run strands-solver benchmark -r ./my_reports              # custom report directory
+uv run strands-solver benchmark -r ./my_results.md           # custom report file
 ```
 
 ### `embed`
